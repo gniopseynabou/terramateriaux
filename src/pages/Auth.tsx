@@ -1,0 +1,209 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Layout from "@/components/Layout";
+import { toast } from "@/hooks/use-toast";
+import { LogIn, UserPlus, MailCheck } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+
+const Auth = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<"auth" | "forgot">("auth");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const navigate = useNavigate();
+  const { user, loading: authLoading, isAdmin } = useAuth();
+
+  // Rediriger si déjà connecté — ne pas montrer la page login
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(isAdmin ? "/admin" : "/mes-commandes", { replace: true });
+    }
+  }, [authLoading, user, isAdmin, navigate]);
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setSent(true);
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast({ title: "Connexion réussie" });
+        const { data: isAdmin } = await supabase.rpc("has_role", {
+          _user_id: data.user.id,
+          _role: "admin",
+        });
+        navigate(isAdmin ? "/admin" : "/mes-commandes");
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+        toast({
+          title: "Inscription réussie",
+          description: "Vérifiez votre email pour confirmer votre compte.",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-10 md:py-16 max-w-md">
+        <div className="bg-card p-6 md:p-8 rounded-lg border border-border">
+          {mode === "forgot" ? (
+            <>
+              <h1 className="text-2xl font-heading font-bold text-center mb-2">Mot de passe oublié</h1>
+              {sent ? (
+                <div className="text-sm text-muted-foreground space-y-3 mt-4" role="status">
+                  <p className="flex items-center gap-2 text-success font-medium">
+                    <MailCheck className="h-5 w-5" aria-hidden="true" /> E-mail envoyé
+                  </p>
+                  <p>
+                    Si un compte existe pour <strong className="text-foreground">{email}</strong>, vous recevrez un lien
+                    de réinitialisation sécurisé. Ce lien est valable une seule fois et expire rapidement.
+                  </p>
+                  <Button variant="outline" className="w-full min-h-11" onClick={() => { setMode("auth"); setSent(false); }}>
+                    Retour à la connexion
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgot} className="space-y-4 mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Saisissez votre e-mail : nous vous enverrons un lien sécurisé pour créer un nouveau mot de passe.
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="forgot-email">Email</Label>
+                    <Input id="forgot-email" type="email" className="h-11" value={email}
+                      onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+                  </div>
+                  <Button className="w-full min-h-11" size="lg" disabled={loading}>
+                    {loading ? "Envoi…" : "Envoyer le lien de réinitialisation"}
+                  </Button>
+                  <button type="button" onClick={() => setMode("auth")}
+                    className="w-full text-sm text-primary hover:underline min-h-11">
+                    Retour à la connexion
+                  </button>
+                </form>
+              )}
+            </>
+          ) : (
+          <>
+          <h1 className="text-2xl font-heading font-bold text-center mb-6">
+            {isLogin ? "Connexion" : "Inscription"}
+          </h1>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName">Nom complet</Label>
+                <Input
+                  id="fullName"
+                  placeholder="Votre nom"
+                className="h-11"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                className="h-11"
+                placeholder="votre@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Mot de passe</Label>
+              <Input
+                id="password"
+                type="password"
+                className="h-11"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => { setMode("forgot"); setSent(false); }}
+                className="text-sm text-primary hover:underline"
+              >
+                Mot de passe oublié ?
+              </button>
+            )}
+
+            <Button className="w-full min-h-11" size="lg" disabled={loading}>
+              {loading ? "Chargement..." : isLogin ? (
+                <><LogIn className="h-4 w-4 mr-2" /> Se connecter</>
+              ) : (
+                <><UserPlus className="h-4 w-4 mr-2" /> S'inscrire</>
+              )}
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}{" "}
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-primary hover:underline font-medium"
+            >
+              {isLogin ? "S'inscrire" : "Se connecter"}
+            </button>
+          </p>
+          </>
+          )}
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default Auth;
