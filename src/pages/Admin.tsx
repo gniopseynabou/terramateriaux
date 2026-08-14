@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, FolderTree, ShoppingBag, CreditCard, MessageSquare,
-  Menu, X, ArrowLeft, TrendingUp, Clock, LogOut, Inbox
+  Menu, X, ArrowLeft, TrendingUp, Clock, LogOut, Inbox, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProducts, formatFCFA } from "@/hooks/useProducts";
@@ -16,6 +16,7 @@ import AdminCategories from "@/components/admin/AdminCategories";
 import AdminRequests from "@/components/admin/AdminRequests";
 import AdminMessages from "@/components/admin/AdminMessages";
 import AdminPayments from "@/components/admin/AdminPayments";
+import AdminInvite from "@/components/admin/AdminInvite";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminOrderRequests } from "@/hooks/useOrderRequests";
 
@@ -28,6 +29,7 @@ const adminNav = [
   { label: "Paiements", icon: CreditCard, id: "payments" },
   { label: "Infos de paiement", icon: CreditCard, id: "payment-settings" },
   { label: "Commentaires", icon: MessageSquare, id: "comments" },
+  { label: "Administrateurs", icon: ShieldCheck, id: "admins" },
 ];
 
 const Admin = () => {
@@ -173,6 +175,8 @@ const Admin = () => {
           {activeTab === "payment-settings" && <AdminPaymentSettings />}
 
           {activeTab === "comments" && <AdminMessages />}
+
+          {activeTab === "admins" && <AdminInvite />}
         </div>
       </div>
     </div>

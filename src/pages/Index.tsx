@@ -41,9 +41,6 @@ const Index = () => {
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto space-y-5 md:space-y-6 text-center flex flex-col items-center"
           >
-            <span className="inline-flex items-center rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-1.5 text-xs sm:text-sm font-medium text-primary-foreground backdrop-blur-sm">
-              Gros & détail · Livraison partout au Sénégal
-            </span>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-primary-foreground leading-[1.1] text-balance text-center">
               Votre partenaire matériaux & commerce en Afrique
             </h1>
