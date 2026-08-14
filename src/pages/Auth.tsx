@@ -60,6 +60,19 @@ const Auth = () => {
         });
         navigate(isAdmin ? "/admin" : "/mes-commandes");
       } else {
+        const { data: emailExists, error: checkError } = await supabase.rpc("check_email_exists", {
+          email_to_check: email.trim(),
+        });
+
+        if (checkError) {
+          console.error("Error checking email:", checkError);
+          throw new Error("Erreur lors de la vérification de l'email.");
+        }
+
+        if (emailExists) {
+          throw new Error("Un compte existe déjà avec cette adresse email.");
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
