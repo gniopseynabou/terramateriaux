@@ -31,7 +31,8 @@ const AdminInvite = () => {
   const fetchAdmins = useCallback(async () => {
     setLoadingAdmins(true);
     try {
-      const { data, error } = await supabase.rpc("get_admin_users");
+      const { data, error } = await (supabase.rpc as any)("get_admin_users");
+      console.log("[AdminInvite] Fetch admins:", data, error);
       if (error) throw error;
       setAdmins((data as AdminUser[]) ?? []);
     } catch (err: any) {
@@ -80,7 +81,7 @@ const AdminInvite = () => {
 
     setRevokingId(targetUserId);
     try {
-      const { error } = await supabase.rpc("revoke_admin_role", {
+      const { error } = await (supabase.rpc as any)("revoke_admin_role", {
         target_user_id: targetUserId,
       });
       if (error) throw error;
