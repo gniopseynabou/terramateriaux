@@ -29,7 +29,6 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("@radix-ui")) return "vendor-radix";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
           if (id.includes("react-router") || id.includes("@tanstack")) return "vendor-router";
-          if (id.includes("react-dom") || id.includes("/react/")) return "vendor-react";
           return "vendor";
         },
       },
