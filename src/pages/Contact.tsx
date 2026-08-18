@@ -34,8 +34,8 @@ const Contact = () => {
       if (error) throw error;
       toast({ title: "Message envoyé !", description: "Nous vous répondrons dans les plus brefs délais." });
       setName(""); setEmail(""); setPhone(""); setSubject(""); setMessage("");
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setLoading(false);
     }

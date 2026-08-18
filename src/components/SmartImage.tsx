@@ -49,7 +49,7 @@ const SmartImage = ({
         alt={alt}
         loading={priority ? "eager" : "lazy"}
         decoding={priority ? "sync" : "async"}
-        // @ts-ignore: React 18 types do not support fetchpriority yet, but React 18 DOM requires it lowercase
+        // @ts-expect-error - attribut d'accessibilité manquant dans les types standard
         fetchpriority={priority ? "high" : "auto"}
         onLoad={() => setLoaded(true)}
         onError={() => {

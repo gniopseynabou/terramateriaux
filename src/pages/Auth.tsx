@@ -38,8 +38,8 @@ const Auth = () => {
       });
       if (error) throw error;
       setSent(true);
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -87,10 +87,10 @@ const Auth = () => {
           description: "Vérifiez votre email pour confirmer votre compte.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erreur",
-        description: err.message,
+        description: err instanceof Error ? err.message : "Erreur inconnue",
         variant: "destructive",
       });
     } finally {
