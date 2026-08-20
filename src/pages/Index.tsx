@@ -28,7 +28,7 @@ const Index = () => {
           width={1920}
           height={1088}
           loading="eager"
-          // @ts-ignore: React 18 types do not support fetchpriority yet
+          // @ts-expect-error - attribut fetchpriority non encore supporté officiellement par les types React
           fetchpriority="high"
           decoding="sync"
           className="absolute inset-0 h-full w-full object-cover"

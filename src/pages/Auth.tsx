@@ -88,7 +88,7 @@ const Auth = () => {
           description: "Vérifiez votre email pour confirmer votre compte.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erreur",
         description: getFriendlyErrorMessage(err),

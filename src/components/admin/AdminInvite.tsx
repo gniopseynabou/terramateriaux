@@ -31,12 +31,13 @@ const AdminInvite = () => {
   const fetchAdmins = useCallback(async () => {
     setLoadingAdmins(true);
     try {
-      const { data, error } = await (supabase.rpc as any)("get_admin_users");
+      // @ts-expect-error rpc n'est pas typé
+      const { data, error } = await supabase.rpc("get_admin_users");
       console.log("[AdminInvite] Fetch admins:", data, error);
       if (error) throw error;
       setAdmins((data as AdminUser[]) ?? []);
-    } catch (err: any) {
-      toast.error("Impossible de charger la liste des admins : " + err.message);
+    } catch (err: unknown) {
+      toast.error("Impossible de charger la liste des admins : " + (err instanceof Error ? err.message : "Erreur inconnue"));
     } finally {
       setLoadingAdmins(false);
     }
@@ -68,8 +69,8 @@ const AdminInvite = () => {
       setFullName("");
       // Rafraîchir la liste après quelques secondes
       setTimeout(fetchAdmins, 1500);
-    } catch (err: any) {
-      toast.error(err.message ?? "Erreur lors de l'envoi de l'invitation.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi de l'invitation.");
     } finally {
       setSending(false);
     }
@@ -81,14 +82,15 @@ const AdminInvite = () => {
 
     setRevokingId(targetUserId);
     try {
-      const { error } = await (supabase.rpc as any)("revoke_admin_role", {
+      // @ts-expect-error rpc n'est pas typé
+      const { error } = await supabase.rpc("revoke_admin_role", {
         target_user_id: targetUserId,
       });
       if (error) throw error;
       toast.success(`Droits admin révoqués pour ${targetEmail}.`);
       setAdmins((prev) => prev.filter((a) => a.user_id !== targetUserId));
-    } catch (err: any) {
-      toast.error(err.message ?? "Erreur lors de la révocation.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la révocation.");
     } finally {
       setRevokingId(null);
     }
