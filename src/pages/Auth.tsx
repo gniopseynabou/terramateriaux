@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,18 @@ const Auth = () => {
   const [sent, setSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading, isAdmin } = useAuth();
 
   // Rediriger si déjà connecté — ne pas montrer la page login
+  // Sauf pendant le flux de réinitialisation du mot de passe.
   useEffect(() => {
+    if (location.pathname === "/reset-password") return;
+
     if (!authLoading && user) {
       navigate(isAdmin ? "/admin" : "/mes-commandes", { replace: true });
     }
-  }, [authLoading, user, isAdmin, navigate]);
+  }, [authLoading, user, isAdmin, navigate, location.pathname]);
 
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();

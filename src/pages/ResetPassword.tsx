@@ -17,13 +17,32 @@ const ResetPassword = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) setReady(true);
+      if (!active) return;
+
+      if (event === "PASSWORD_RECOVERY") {
+        setReady(true);
+        return;
+      }
+
+      if (event === "SIGNED_IN" && session && window.location.pathname === "/reset-password") {
+        setReady(true);
+      }
     });
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
+      if (!active) return;
+      if (data.session && window.location.pathname === "/reset-password") {
+        setReady(true);
+      }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const submit = async (e: React.FormEvent) => {
