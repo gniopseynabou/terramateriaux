@@ -45,9 +45,6 @@ export interface CreateOrderInput {
   items: CreateOrderItemInput[];
 }
 
-const generateOrderNumber = () =>
-  `TMI-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-
 /**
  * Creates an order without any online payment.
  * Status starts at EN_ATTENTE_PAIEMENT; the customer pays externally then declares it.
@@ -57,54 +54,11 @@ export const useCreateOrder = () => {
 
   return useMutation({
     mutationFn: async (input: CreateOrderInput) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const orderNumber = generateOrderNumber();
-
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          user_id: user?.id ?? null,
-          customer_name: input.customer_name,
-          customer_phone: input.customer_phone,
-          customer_email: input.customer_email ?? null,
-          customer_comment: input.customer_comment ?? null,
-          delivery_method: input.delivery_method,
-          delivery_address: input.delivery_address ?? null,
-          delivery_region: input.delivery_region ?? null,
-          delivery_city: input.delivery_city ?? null,
-          delivery_quarter: input.delivery_quarter ?? null,
-          delivery_fee: input.delivery_fee,
-          subtotal: input.subtotal,
-          total: input.total,
-          estimated_total: input.total,
-          payment_method: input.payment_method,
-          status: "en cours",
-          order_status: "EN_ATTENTE_PAIEMENT",
-        })
-        .select()
-        .single();
-      if (orderError) throw orderError;
-
-      const { error: itemsError } = await supabase.from("order_items").insert(
-        input.items.map((item) => ({ ...item, order_id: order.id }))
-      );
-      if (itemsError) throw itemsError;
-
-      await supabase.from("order_history").insert({
-        order_id: order.id,
-        status: "EN_ATTENTE_PAIEMENT",
-        comment: `Commande enregistrée par le client (paiement choisi : ${input.payment_method}).`,
-        created_by: user?.id ?? null,
+      const { data, error } = await supabase.rpc("create_order_v2", {
+        payload: input as any
       });
-
-      await pushNotification({
-        user_id: user?.id ?? null,
-        order_id: order.id,
-        ...ORDER_STATUS_NOTIFICATIONS.EN_ATTENTE_PAIEMENT,
-      });
-
-      return order as DbOrder;
+      if (error) throw error;
+      return data as unknown as DbOrder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -120,11 +74,9 @@ export const useOrderByNumber = (orderNumber?: string) =>
     queryKey: ["order", orderNumber],
     enabled: !!orderNumber,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(ORDER_DETAIL_SELECT)
-        .eq("order_number", orderNumber!)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("get_order_details_by_number", {
+        _order_number: orderNumber!
+      });
       if (error) throw error;
       return data as unknown as OrderWithDetails | null;
     },

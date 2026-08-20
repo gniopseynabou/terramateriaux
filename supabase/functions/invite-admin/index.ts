@@ -1,12 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "https://terramateriaux.netlify.app",
+];
+
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("origin");
+  const isAllowed = origin && ALLOWED_ORIGINS.includes(origin);
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -102,12 +114,11 @@ serve(async (req) => {
         { onConflict: "user_id,role", ignoreDuplicates: true }
       );
     } else {
-      // L'utilisateur existait déjà → trouver son ID via la liste des users
-      const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-      const existing = users.find((u) => u.email === email.trim().toLowerCase());
-      if (existing) {
+      // L'utilisateur existait déjà → trouver son ID via la RPC optimisée
+      const { data: existingUserId } = await supabaseAdmin.rpc("get_user_id_by_email", { email_addr: email.trim().toLowerCase() });
+      if (existingUserId) {
         await supabaseAdmin.from("user_roles").upsert(
-          { user_id: existing.id, role: "admin" },
+          { user_id: existingUserId, role: "admin" },
           { onConflict: "user_id,role", ignoreDuplicates: true }
         );
       }

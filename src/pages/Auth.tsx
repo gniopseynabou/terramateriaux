@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
 import { toast } from "@/hooks/use-toast";
-import { LogIn, UserPlus, MailCheck, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LogIn, MailCheck, UserPlus } from "lucide-react";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
@@ -39,7 +40,7 @@ const Auth = () => {
       if (error) throw error;
       setSent(true);
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur", description: getFriendlyErrorMessage(err), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ const Auth = () => {
     } catch (err: any) {
       toast({
         title: "Erreur",
-        description: err.message,
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
       });
     } finally {

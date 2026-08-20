@@ -138,18 +138,40 @@ function buildEmailHtml(
 </html>`;
 }
 
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "https://terramateriaux.netlify.app",
+];
+
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("origin");
+  const isAllowed = origin && ALLOWED_ORIGINS.includes(origin);
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+};
+
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
 serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    const expectedSecret = Deno.env.get("WEBHOOK_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    // Secure the webhook
+    if (!authHeader || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set.");
 
     const body = await req.json();
@@ -200,12 +222,12 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ success: true, id: resendData.id }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

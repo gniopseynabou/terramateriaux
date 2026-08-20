@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 
 const Contact = () => {
   const [name, setName] = useState("");
@@ -35,7 +36,7 @@ const Contact = () => {
       toast({ title: "Message envoyé !", description: "Nous vous répondrons dans les plus brefs délais." });
       setName(""); setEmail(""); setPhone(""); setSubject(""); setMessage("");
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur", description: getFriendlyErrorMessage(err), variant: "destructive" });
     } finally {
       setLoading(false);
     }

@@ -707,6 +707,22 @@ export type Database = {
         }
         Returns: string
       }
+      create_order_v2: {
+        Args: { payload: Json }
+        Returns: Json
+      }
+      get_order_details_by_number: {
+        Args: { _order_number: string }
+        Returns: Json
+      }
+      get_admin_users: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; email: string }[]
+      }
+      revoke_admin_role: {
+        Args: { admin_id: string }
+        Returns: undefined
+      }
       declare_payment: {
         Args: {
           _amount: number

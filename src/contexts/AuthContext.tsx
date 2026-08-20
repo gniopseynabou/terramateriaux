@@ -60,9 +60,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const init = async () => {
       const {
         data: { session: existingSession },
+        error
       } = await supabase.auth.getSession();
 
       if (!mounted) return;
+
+      if (error) {
+        // Le token (refresh token) est invalide ou expiré, on nettoie le cache local
+        await supabase.auth.signOut();
+      }
 
       if (existingSession?.user) {
         const r = await fetchRole(existingSession.user.id);

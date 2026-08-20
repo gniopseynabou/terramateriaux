@@ -26,12 +26,12 @@ BEGIN
     ur.user_id,
     au.email::TEXT,
     COALESCE(p.full_name, '')::TEXT AS full_name,
-    ur.created_at
+    au.created_at AS created_at
   FROM public.user_roles ur
   JOIN auth.users au ON au.id = ur.user_id
   LEFT JOIN public.profiles p ON p.user_id = ur.user_id
   WHERE ur.role = 'admin'
-  ORDER BY ur.created_at DESC;
+  ORDER BY au.created_at DESC;
 END;
 $$;
 
