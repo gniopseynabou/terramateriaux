@@ -186,7 +186,7 @@ const AdminPayments = () => {
                 <Button
                   size="sm"
                   onClick={() => updateStatus.mutate({ id: p.id, status: "verified", order_id: p.order_id, comment: comments[p.id], customer_user_id: p.orders?.user_id ?? null })}
-                  disabled={updateStatus.isPending}
+                  disabled={updateStatus.isPending || !p.proof_url}
                 >
                   <CheckCircle2 className="h-4 w-4 mr-1" /> Valider
                 </Button>
