@@ -3,10 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
+import { getPostAuthRedirect } from "@/lib/authRedirect";
 import Index from "./pages/Index";
 
 // ── Chargement paresseux ──────────────────────────────────────────────────────
@@ -57,8 +58,13 @@ const AuthFallback = () => (
 // ── ProtectedRoute — Accessible uniquement si connecté ───────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
   if (loading) return <AuthFallback />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) {
+    const redirectTarget = encodeURIComponent(`${location.pathname}${location.search}`);
+    return <Navigate to={`/auth?redirect=${redirectTarget}`} replace />;
+  }
   return <>{children}</>;
 };
 
@@ -91,8 +97,8 @@ const RouterApp = () => (
       <Route path="/produit/:slug" element={<ProductDetail />} />
       <Route path="/panier" element={<Cart />} />
       <Route path="/livraison" element={<Delivery />} />
-      <Route path="/commande" element={<Checkout />} />
-      <Route path="/paiement" element={<Checkout />} />
+      <Route path="/commande" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+      <Route path="/paiement" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/a-propos" element={<About />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/auth" element={<Auth />} />

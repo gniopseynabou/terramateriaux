@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn, MailCheck, UserPlus } from "lucide-react";
 import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 import { useAuth } from "@/hooks/useAuth";
+import { getPostAuthRedirect } from "@/lib/authRedirect";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -22,6 +23,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading, isAdmin } = useAuth();
+  const redirectTarget = getPostAuthRedirect(new URLSearchParams(location.search).get("redirect"));
 
   // Rediriger si déjà connecté — ne pas montrer la page login
   // Sauf pendant le flux de réinitialisation du mot de passe.
@@ -59,11 +61,11 @@ const Auth = () => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast({ title: "Connexion réussie" });
-        const { data: isAdmin } = await supabase.rpc("has_role", {
+        const { data: isAdminRole } = await supabase.rpc("has_role", {
           _user_id: data.user.id,
           _role: "admin",
         });
-        navigate(isAdmin ? "/admin" : "/mes-commandes");
+        navigate(isAdminRole ? "/admin" : redirectTarget, { replace: true });
       } else {
         const { data: emailExists, error: checkError } = await supabase.rpc("check_email_exists", {
           email_to_check: email.trim(),
@@ -91,6 +93,7 @@ const Auth = () => {
           title: "Inscription réussie",
           description: "Vérifiez votre email pour confirmer votre compte.",
         });
+        navigate(redirectTarget, { replace: true });
       }
     } catch (err: unknown) {
       toast({
