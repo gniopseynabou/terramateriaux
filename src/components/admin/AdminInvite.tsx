@@ -33,7 +33,7 @@ const AdminInvite = () => {
     try {
       // @ts-expect-error rpc n'est pas typé
       const { data, error } = await supabase.rpc("get_admin_users");
-      console.log("[AdminInvite] Fetch admins:", data, error);
+      
       if (error) throw error;
       setAdmins((data as AdminUser[]) ?? []);
     } catch (err: unknown) {
