@@ -82,10 +82,10 @@ const OrderRow = ({ order }: { order: OrderWithDetails }) => {
         <div className="border-t border-border p-4 space-y-5">
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
-              <p><span className="text-muted-foreground">Email :</span> {order.customer_email ?? "—"}</p>
-              <p><span className="text-muted-foreground">Adresse :</span> {order.delivery_address ?? "—"}</p>
-              <p><span className="text-muted-foreground">Ville / quartier :</span> {order.delivery_city ?? "—"} / {order.delivery_quarter ?? "—"}</p>
-              <p><span className="text-muted-foreground">Région :</span> {order.delivery_region ?? "—"}</p>
+              <p><span className="text-muted-foreground">Email :</span> {order.customer_email ?? "-"}</p>
+              <p><span className="text-muted-foreground">Adresse :</span> {order.delivery_address ?? "-"}</p>
+              <p><span className="text-muted-foreground">Ville / quartier :</span> {order.delivery_city ?? "-"} / {order.delivery_quarter ?? "-"}</p>
+              <p><span className="text-muted-foreground">Région :</span> {order.delivery_region ?? "-"}</p>
               <p><span className="text-muted-foreground">Mode :</span> {order.delivery_method}</p>
               {order.customer_comment && (
                 <p><span className="text-muted-foreground">Commentaire client :</span> {order.customer_comment}</p>
@@ -94,7 +94,7 @@ const OrderRow = ({ order }: { order: OrderWithDetails }) => {
               <p>
                 <span className="text-muted-foreground">Paiement :</span>{" "}
                 {order.payments.length > 0
-                  ? `${order.payments[order.payments.length - 1].payment_method} — ${order.payments[order.payments.length - 1].status}`
+                  ? `${order.payments[order.payments.length - 1].payment_method} - ${order.payments[order.payments.length - 1].status}`
                   : "Aucun paiement enregistré"}
               </p>
             </div>
@@ -135,7 +135,7 @@ const OrderRow = ({ order }: { order: OrderWithDetails }) => {
             </div>
             <div className="space-y-1.5">
               <Label>Montant final</Label>
-              <Input type="number" min={0} placeholder="—" value={draft.finalTotal} onChange={(e) => setDraft({ ...draft, finalTotal: e.target.value })} />
+              <Input type="number" min={0} placeholder="-" value={draft.finalTotal} onChange={(e) => setDraft({ ...draft, finalTotal: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Commercial</Label>
@@ -165,7 +165,7 @@ const OrderRow = ({ order }: { order: OrderWithDetails }) => {
                   <li key={h.id} className="flex flex-wrap gap-2">
                     <span className="text-muted-foreground">{new Date(h.created_at).toLocaleString("fr-FR")}</span>
                     <span className="font-medium">{ORDER_STATUS_LABELS[h.status]}</span>
-                    {h.comment && <span className="text-muted-foreground">— {h.comment}</span>}
+                    {h.comment && <span className="text-muted-foreground">- {h.comment}</span>}
                     <span className="text-muted-foreground">
                       ({h.created_by ? `par ${h.created_by.slice(0, 8)}` : "système / client"})
                     </span>

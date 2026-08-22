@@ -35,13 +35,13 @@ const Header = () => {
   const { user, isAdmin } = useAuth();
   const location = useLocation();
 
-  // Choisir les liens selon le rôle — sans jamais toucher à la session
+  // Choisir les liens selon le rôle - sans jamais toucher à la session
   const navLinks = isAdmin ? adminNavLinks : user ? userNavLinks : publicNavLinks;
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        {/* Logo — navigation normale, pas de signOut */}
+        {/* Logo - navigation normale, pas de signOut */}
         <Link to="/" className="flex items-center gap-2">
           <img src={logo} alt="T.M.I Logo" width={40} height={40} decoding="async" className="h-10 w-10 rounded-full object-cover" />
           <div className="hidden sm:block">

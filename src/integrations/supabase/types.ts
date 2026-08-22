@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_settings: {
+        Row: {
+          id: string
+          public_email: string
+          technical_email: string
+          technical_whatsapp: string
+          updated_at: string
+          whatsapp_message: string
+          whatsapp_number: string
+        }
+        Insert: {
+          id?: string
+          public_email?: string
+          technical_email?: string
+          technical_whatsapp?: string
+          updated_at?: string
+          whatsapp_message?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          id?: string
+          public_email?: string
+          technical_email?: string
+          technical_whatsapp?: string
+          updated_at?: string
+          whatsapp_message?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           city: string
@@ -732,6 +762,10 @@ export type Database = {
           _proof_url?: string
           _reference?: string
         }
+        Returns: string
+      }
+      admin_mark_cash_payment: {
+        Args: { _comment?: string; _order_id: string; _proof_url?: string }
         Returns: string
       }
       has_role: {

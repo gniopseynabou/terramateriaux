@@ -73,7 +73,7 @@ const Delivery = () => {
           >
             <Store className="h-8 w-8 text-secondary mb-3" />
             <h3 className="font-heading font-semibold">Retrait en magasin</h3>
-            <p className="text-sm text-muted-foreground mt-1">Gratuit — Kédougou</p>
+            <p className="text-sm text-muted-foreground mt-1">Gratuit - Kédougou</p>
           </button>
         </div>
 
@@ -100,7 +100,7 @@ const Delivery = () => {
                   <SelectTrigger><SelectValue placeholder={selectedRegion ? "Choisir une ville" : "Choisissez d'abord une région"} /></SelectTrigger>
                   <SelectContent>
                     {cities.map((c) => (
-                      <SelectItem key={c.id} value={c.city}>{c.city} — {formatFCFA(c.fee)}</SelectItem>
+                      <SelectItem key={c.id} value={c.city}>{c.city} - {formatFCFA(c.fee)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -126,7 +126,7 @@ const Delivery = () => {
 
         {deliveryMethod === "retrait" && (
           <div className="mb-8 bg-accent/50 border border-primary/20 rounded-lg p-4">
-            <p className="text-sm font-medium">📍 Retrait à notre magasin — Kédougou Centre</p>
+            <p className="text-sm font-medium">📍 Retrait à notre magasin - Kédougou Centre</p>
             <p className="text-xs text-muted-foreground mt-1">Frais de livraison : <strong className="text-foreground">0 FCFA</strong></p>
           </div>
         )}

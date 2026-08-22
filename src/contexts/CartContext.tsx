@@ -79,7 +79,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
-      /* storage unavailable — cart stays in memory */
+      /* storage unavailable - cart stays in memory */
     }
   }, [items, deliveryMethod, deliveryFee, customer]);
 
@@ -87,7 +87,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
-        // never duplicate a product line — only bump the quantity
+        // never duplicate a product line - only bump the quantity
         return prev.map((i) =>
           i.product.id === product.id ? { ...i, quantity: i.quantity + quantity, isGros } : i
         );

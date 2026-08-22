@@ -55,7 +55,7 @@ const AuthFallback = () => (
   </div>
 );
 
-// ── ProtectedRoute — Accessible uniquement si connecté ───────────────────────
+// ── ProtectedRoute - Accessible uniquement si connecté ───────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -68,7 +68,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ── AdminRoute — Accessible uniquement si admin ───────────────────────────────
+// ── AdminRoute - Accessible uniquement si admin ───────────────────────────────
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, loading } = useAuth();
   if (loading) return <AuthFallback />;
@@ -86,7 +86,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ── RouterApp — Séparé pour pouvoir utiliser useAuth (dans BrowserRouter) ─────
+// ── RouterApp - Séparé pour pouvoir utiliser useAuth (dans BrowserRouter) ─────
 const RouterApp = () => (
   <Suspense fallback={<PageFallback />}>
     <Routes>
@@ -104,7 +104,7 @@ const RouterApp = () => (
       <Route path="/auth" element={<Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Routes protégées — utilisateur connecté */}
+      {/* Routes protégées - utilisateur connecté */}
       <Route path="/confirmation/:orderNumber" element={
         <ProtectedRoute><Confirmation /></ProtectedRoute>
       } />

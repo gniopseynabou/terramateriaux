@@ -98,7 +98,7 @@ const AdminCategories = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="font-medium text-sm truncate">{c.name}</h4>
-                <p className="text-xs text-muted-foreground line-clamp-2">{c.description ?? "—"}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{c.description ?? "-"}</p>
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button variant="outline" size="icon" className="h-10 w-10" aria-label={`Modifier ${c.name}`} onClick={() => openEdit(c)}>

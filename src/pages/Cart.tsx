@@ -50,7 +50,7 @@ const Cart = () => {
                       <h3 className="font-medium text-sm line-clamp-1 hover:text-primary">{item.product.name}</h3>
                     </Link>
                     <span className="text-xs text-muted-foreground">
-                      {item.isGros ? "Achat en gros" : "Détail"} — {formatFCFA(price)} / unité
+                      {item.isGros ? "Achat en gros" : "Détail"} - {formatFCFA(price)} / unité
                     </span>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>

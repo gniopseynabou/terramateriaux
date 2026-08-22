@@ -78,7 +78,7 @@ const Checkout = () => {
         customer_phone: parsed.data.tel,
         customer_email: parsed.data.email || undefined,
         customer_comment: [parsed.data.repere && `Point de repère : ${parsed.data.repere}`, parsed.data.commentaire]
-          .filter(Boolean).join(" — ") || undefined,
+          .filter(Boolean).join(" - ") || undefined,
         delivery_method: deliveryMethod,
         delivery_address: parsed.data.adresse,
         delivery_region: parsed.data.region,

@@ -59,12 +59,12 @@ const AdminRequests = () => {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono font-semibold">{r.orders?.order_number ?? "—"}</span>
+                <span className="font-mono font-semibold">{r.orders?.order_number ?? "-"}</span>
                 <Badge variant="outline">{REQUEST_TYPE_LABELS[r.request_type]}</Badge>
                 <Badge className={REQUEST_STATUS_CLASSES[r.status]}>{REQUEST_STATUS_LABELS[r.status]}</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {r.orders?.customer_name ?? "Client"} · {r.orders?.customer_phone ?? "—"} ·{" "}
+                {r.orders?.customer_name ?? "Client"} · {r.orders?.customer_phone ?? "-"} ·{" "}
                 {new Date(r.created_at).toLocaleString("fr-FR")}
               </p>
             </div>

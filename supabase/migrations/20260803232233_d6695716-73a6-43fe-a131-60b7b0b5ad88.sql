@@ -110,7 +110,7 @@ BEGIN
 
   INSERT INTO public.order_history (order_id, status, comment, created_by)
   VALUES (_order_id, 'ANNULEE',
-          'Commande annulée par le client' || COALESCE(' — ' || NULLIF(btrim(_reason), ''), ''),
+          'Commande annulée par le client' || COALESCE(' - ' || NULLIF(btrim(_reason), ''), ''),
           auth.uid());
 
   INSERT INTO public.notifications (user_id, order_id, title, message, type)

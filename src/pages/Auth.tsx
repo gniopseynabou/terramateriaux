@@ -25,7 +25,7 @@ const Auth = () => {
   const { user, loading: authLoading, isAdmin } = useAuth();
   const redirectTarget = getPostAuthRedirect(new URLSearchParams(location.search).get("redirect"));
 
-  // Rediriger si déjà connecté — ne pas montrer la page login
+  // Rediriger si déjà connecté - ne pas montrer la page login
   // Sauf pendant le flux de réinitialisation du mot de passe.
   useEffect(() => {
     if (location.pathname === "/reset-password") return;

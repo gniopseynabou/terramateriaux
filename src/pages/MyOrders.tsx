@@ -70,7 +70,7 @@ const MyOrders = () => {
                   {new Date(order.created_at).toLocaleString("fr-FR")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Paiement : {order.payment_method ?? "—"}
+                  Paiement : {order.payment_method ?? "-"}
                   {order.payments.length > 0 && order.payments[order.payments.length - 1].reference
                     ? ` · Réf. ${order.payments[order.payments.length - 1].reference}`
                     : ""}
@@ -101,12 +101,12 @@ const MyOrders = () => {
 
             {order.payments.length > 0 && (
               <div className="text-xs text-muted-foreground border-t border-border pt-3">
-                {order.payments.length} preuve(s) de paiement envoyée(s) — dernier statut :{" "}
+                {order.payments.length} preuve(s) de paiement envoyée(s) - dernier statut :{" "}
                 <span className="font-medium text-foreground">{order.payments[order.payments.length - 1].status}</span>
               </div>
             )}
 
-            {PAYMENT_STAGES.includes(order.order_status) && (
+            {PAYMENT_STAGES.includes(order.order_status) && order.payment_method !== "cash_on_delivery" && (
               <PaymentDeclarationCard
                 orderId={order.id}
                 orderNumber={order.order_number}

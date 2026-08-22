@@ -131,7 +131,7 @@ const ProfileMenu = () => {
 
               {!profile?.phone && !profile?.city && !profile?.address && (
                 <p className="text-xs text-muted-foreground italic">
-                  Profil incomplet —{" "}
+                  Profil incomplet -{" "}
                   <Link to="/profil" onClick={close} className="text-primary hover:underline">
                     compléter mes infos
                   </Link>
@@ -180,7 +180,7 @@ const ProfileMenu = () => {
 
             <Separator />
 
-            {/* ── Déconnexion — SEUL bouton qui appelle signOut ─────────── */}
+            {/* ── Déconnexion - SEUL bouton qui appelle signOut ─────────── */}
             <div className="p-2">
               <button
                 onClick={handleSignOut}

@@ -43,8 +43,8 @@ BEGIN
 
   INSERT INTO public.order_history (order_id, status, comment, created_by)
   VALUES (_order_id, 'PAIEMENT_EN_ATTENTE_VERIFICATION',
-          'Paiement déclaré par le client (' || _payment_method || ') — référence : ' || COALESCE(NULLIF(_reference, ''), 'non renseignée')
-          || COALESCE(' — ' || NULLIF(_comment, ''), ''),
+          'Paiement déclaré par le client (' || _payment_method || ') - référence : ' || COALESCE(NULLIF(_reference, ''), 'non renseignée')
+          || COALESCE(' - ' || NULLIF(_comment, ''), ''),
           auth.uid());
 
   INSERT INTO public.notifications (user_id, order_id, title, message, type)

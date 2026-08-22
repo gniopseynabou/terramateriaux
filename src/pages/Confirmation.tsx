@@ -90,7 +90,7 @@ const Confirmation = () => {
                         .filter(Boolean).join(", ")}
                 </p>
                 <p className="text-muted-foreground">
-                  Moyen de paiement choisi : <span className="text-foreground font-medium">{order.payment_method ?? "—"}</span>
+                  Moyen de paiement choisi : <span className="text-foreground font-medium">{order.payment_method ?? "-"}</span>
                 </p>
               </div>
             </section>

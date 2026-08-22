@@ -1,5 +1,5 @@
 /**
- * AdminGuard — Conservé pour rétrocompatibilité.
+ * AdminGuard - Conservé pour rétrocompatibilité.
  * La protection est désormais gérée par AdminRoute dans App.tsx.
  * Ce composant délègue simplement au Context auth global.
  */

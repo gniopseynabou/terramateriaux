@@ -12,7 +12,7 @@ const About = () => (
           À propos de T.M.I
         </h1>
         <p className="text-secondary-foreground/80 max-w-2xl mx-auto text-lg">
-          Terra Matériaux International — Solutions durables et innovantes au service du développement africain.
+          Terra Matériaux International - Solutions durables et innovantes au service du développement africain.
         </p>
       </div>
     </section>
@@ -44,7 +44,7 @@ const About = () => (
             { icon: MapPin, title: "Notre Siège", desc: "Basés à Kédougou, au cœur du Sénégal oriental." },
             { icon: Globe, title: "Rayonnement", desc: "Actifs au Sénégal et à l'international, avec des partenaires en Afrique et en Europe." },
             { icon: Leaf, title: "Engagement durable", desc: "Respect de l'environnement et développement responsable au cœur de notre stratégie." },
-            { icon: Building2, title: "Multi-sectoriel", desc: "BTP, agriculture, commerce, électricité, beauté — un guichet unique." },
+            { icon: Building2, title: "Multi-sectoriel", desc: "BTP, agriculture, commerce, électricité, beauté - un guichet unique." },
           ].map((item, i) => (
             <motion.div
               key={i}

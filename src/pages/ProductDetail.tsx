@@ -74,7 +74,7 @@ const ProductDetail = () => {
                   src={imgSrc}
                   srcSet={imgSrcSet}
                   sizes="120px"
-                  alt={`${product.name} — vue ${i + 1}`}
+                  alt={`${product.name} - vue ${i + 1}`}
                   wrapperClassName="aspect-square rounded-md border-2 border-transparent hover:border-primary cursor-pointer transition-colors"
                   className="w-full h-full object-cover"
                 />

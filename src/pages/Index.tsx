@@ -45,7 +45,7 @@ const Index = () => {
               Votre partenaire matériaux & commerce en Afrique
             </h1>
             <p className="text-primary-foreground/90 text-base sm:text-lg md:text-xl max-w-2xl leading-relaxed text-center mx-auto">
-              Matériaux de construction, agriculture, électroménager et bien plus — des tarifs transparents
+              Matériaux de construction, agriculture, électroménager et bien plus - des tarifs transparents
               en FCFA et une livraison fiable jusqu'à votre chantier.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-center w-full pt-2">

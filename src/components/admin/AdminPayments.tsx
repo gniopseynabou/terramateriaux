@@ -11,10 +11,18 @@ import { useToast } from "@/hooks/use-toast";
 import { pushNotification } from "@/hooks/useNotifications";
 import { ORDER_STATUS_NOTIFICATIONS } from "@/lib/orderStatus";
 import { CheckCircle2, XCircle, RefreshCw, ExternalLink, CreditCard } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Payment = Tables<"payments"> & {
-  orders?: { order_number: string; customer_name: string; user_id: string | null } | null;
+  orders?: { order_number: string; customer_name: string; user_id: string | null; payment_status?: string | null; order_status?: string | null } | null;
+  isCashCollection?: boolean;
 };
+
+const isPaymentFinalized = (payment: Payment) =>
+  payment.status === "verified" || payment.status === "paid"
+  || payment.orders?.payment_status === "verified" || payment.orders?.payment_status === "paid"
+  || payment.orders?.order_status === "PAIEMENT_RECU"
+  || ["PREPARATION", "EXPEDIEE", "LIVREE", "TERMINEE"].includes(payment.orders?.order_status ?? "");
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -38,19 +46,77 @@ const AdminPayments = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [comments, setComments] = useState<Record<string, string>>({});
+  const [cashProofs, setCashProofs] = useState<Record<string, File | null>>({});
+  const [proofPreview, setProofPreview] = useState<{ url: string; name: string } | null>(null);
   const { data: methods = [] } = usePaymentSettings(false);
   const methodLabel = (key: string) => methods.find((m) => m.method_key === key)?.label ?? key;
 
-  const { data: payments = [], isLoading } = useQuery({
+  const { data: payments = [], isLoading, error } = useQuery({
     queryKey: ["admin-payments"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("*, orders(order_number, customer_name, user_id)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Payment[];
+      const [{ data: paymentData, error: paymentError }, { data: cashOrders, error: ordersError }] = await Promise.all([
+        supabase.from("payments").select("*").order("created_at", { ascending: false }),
+        supabase.from("orders").select("id, order_number, customer_name, user_id, total, estimated_total, final_total, payment_method, payment_status, order_status, created_at").eq("payment_method", "cash_on_delivery").order("created_at", { ascending: false }),
+      ]);
+      if (paymentError) throw paymentError;
+      if (ordersError) throw ordersError;
+
+      const paymentRows = (paymentData ?? []) as Tables<"payments">[];
+      const paymentOrderIds = [...new Set(paymentRows.map((payment) => payment.order_id))];
+      const { data: paymentOrders, error: paymentOrdersError } = paymentOrderIds.length
+        ? await supabase.from("orders").select("id, order_number, customer_name, user_id, payment_status, order_status").in("id", paymentOrderIds)
+        : { data: [], error: null };
+      if (paymentOrdersError) throw paymentOrdersError;
+      const ordersById = new Map((paymentOrders ?? []).map((order) => [order.id, order]));
+      const payments = paymentRows.map((payment) => ({ ...payment, orders: ordersById.get(payment.order_id) ?? null })) as Payment[];
+      const representedCashOrders = new Set(
+        payments.filter((payment) => payment.payment_method === "cash_on_delivery").map((payment) => payment.order_id),
+      );
+      const awaitingCashPayments = (cashOrders ?? [])
+        .filter((order) => !representedCashOrders.has(order.id) && order.payment_status !== "paid" && order.payment_status !== "verified" && order.order_status !== "PAIEMENT_RECU" && !["PREPARATION", "EXPEDIEE", "LIVREE", "TERMINEE"].includes(order.order_status ?? ""))
+        .map((order) => ({
+          id: `cash:${order.id}`,
+          order_id: order.id,
+          user_id: order.user_id,
+          payment_method: "cash_on_delivery",
+          amount: Number(order.final_total ?? order.estimated_total ?? order.total),
+          currency: "FCFA",
+          reference: order.order_number,
+          proof_url: null,
+          status: "pending",
+          admin_comment: null,
+          validated_by: null,
+          validated_at: null,
+          created_at: order.created_at,
+          updated_at: order.created_at,
+          orders: { order_number: order.order_number, customer_name: order.customer_name, user_id: order.user_id, payment_status: order.payment_status, order_status: order.order_status },
+          isCashCollection: true,
+        })) as Payment[];
+      return [...payments, ...awaitingCashPayments];
     },
+  });
+
+  const markCashPayment = useMutation({
+    mutationFn: async ({ orderId, file }: { orderId: string; file: File | null }) => {
+      let proofUrl: string | null = null;
+      if (file) {
+        const extension = file.name.split(".").pop() || "jpg";
+        const path = `admin/${orderId}/${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(path, file);
+        if (uploadError) throw uploadError;
+        const { data: signed, error: signedError } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signedError) throw signedError;
+        proofUrl = signed.signedUrl;
+      }
+      const { error } = await supabase.rpc("admin_mark_cash_payment", { _order_id: orderId, _proof_url: proofUrl });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Paiement à la livraison enregistré" });
+      qc.invalidateQueries({ queryKey: ["admin-payments"] });
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    },
+    onError: (error: Error) => toast({ title: "Erreur", description: error.message, variant: "destructive" }),
   });
 
   const updateStatus = useMutation({
@@ -132,6 +198,10 @@ const AdminPayments = () => {
 
   if (isLoading) return <p className="text-muted-foreground text-sm">Chargement...</p>;
 
+  if (error) {
+    return <p className="text-sm text-destructive">Impossible de charger les paiements : {(error as Error).message}</p>;
+  }
+
   if (payments.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -149,7 +219,7 @@ const AdminPayments = () => {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono font-semibold">{p.orders?.order_number ?? p.reference}</span>
-                <Badge className={statusColor(p.status)}>{statusLabel(p.status)}</Badge>
+                <Badge className={statusColor(p.status)}>{p.isCashCollection ? "À encaisser" : statusLabel(p.status)}</Badge>
                 <Badge variant="outline">{methodLabel(p.payment_method)}</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
@@ -162,9 +232,13 @@ const AdminPayments = () => {
           </div>
 
           {p.proof_url ? (
-            <a href={p.proof_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+            <button
+              type="button"
+              onClick={() => setProofPreview({ url: p.proof_url!, name: p.orders?.order_number ?? p.reference ?? "Preuve de paiement" })}
+              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+            >
               <ExternalLink className="h-4 w-4" /> Voir la preuve de paiement
-            </a>
+            </button>
           ) : (
             <p className="text-sm text-muted-foreground italic">Aucune preuve téléversée.</p>
           )}
@@ -173,7 +247,7 @@ const AdminPayments = () => {
             <p className="text-xs bg-muted p-2 rounded">Commentaire : {p.admin_comment}</p>
           )}
 
-          {(p.status === "proof_uploaded" || p.status === "pending") && (
+          {!isPaymentFinalized(p) && !p.isCashCollection && (p.status === "proof_uploaded" || p.status === "pending") && (
             <div className="space-y-2 pt-2 border-t border-border">
               <Textarea
                 placeholder="Commentaire (optionnel, obligatoire pour refus / demande de nouvelle preuve)"
@@ -210,17 +284,51 @@ const AdminPayments = () => {
             </div>
           )}
 
-          {p.payment_method === "cash_on_delivery" && p.status !== "paid" && (
-            <Button
-              size="sm"
-              onClick={() => updateStatus.mutate({ id: p.id, status: "paid", order_id: p.order_id, customer_user_id: p.orders?.user_id ?? null })}
-              disabled={updateStatus.isPending}
-            >
-              <CheckCircle2 className="h-4 w-4 mr-1" /> Marquer encaissé à la livraison
-            </Button>
+          {p.isCashCollection && !isPaymentFinalized(p) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                id={`cash-proof-${p.order_id}`}
+                type="file"
+                accept="image/*,application/pdf"
+                className="sr-only"
+                onChange={(event) => setCashProofs({ ...cashProofs, [p.order_id]: event.target.files?.[0] ?? null })}
+              />
+              <Button size="sm" variant="outline" onClick={() => document.getElementById(`cash-proof-${p.order_id}`)?.click()}>
+                <ExternalLink className="h-4 w-4 mr-1" /> {cashProofs[p.order_id] ? "Preuve sélectionnée" : "Ajouter une preuve (facultatif)"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => markCashPayment.mutate({ orderId: p.order_id, file: cashProofs[p.order_id] ?? null })}
+                disabled={markCashPayment.isPending}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Marquer encaissé
+              </Button>
+            </div>
           )}
         </div>
       ))}
+
+      <Dialog open={!!proofPreview} onOpenChange={(open) => !open && setProofPreview(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preuve de paiement</DialogTitle>
+            <DialogDescription>{proofPreview?.name}</DialogDescription>
+          </DialogHeader>
+          {proofPreview && (/\.pdf(?:\?|$)/i.test(proofPreview.url) ? (
+            <iframe
+              src={proofPreview.url}
+              title={`Preuve de paiement ${proofPreview.name}`}
+              className="h-[65vh] w-full rounded-md border border-border"
+            />
+          ) : (
+            <img
+              src={proofPreview.url}
+              alt={`Preuve de paiement ${proofPreview.name}`}
+              className="max-h-[65vh] w-full rounded-md border border-border object-contain"
+            />
+          ))}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 -- Fonctions SQL pour la gestion des administrateurs
 -- ============================================================
 
--- 1. Lister tous les admins (email + profil) — SECURITY DEFINER
+-- 1. Lister tous les admins (email + profil) - SECURITY DEFINER
 --    Nécessaire car auth.users n'est pas accessible côté client.
 CREATE OR REPLACE FUNCTION public.get_admin_users()
 RETURNS TABLE (

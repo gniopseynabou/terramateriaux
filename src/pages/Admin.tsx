@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, FolderTree, ShoppingBag, CreditCard, MessageSquare,
-  Menu, X, ArrowLeft, TrendingUp, Clock, LogOut, Inbox, ShieldCheck
+  Menu, X, ArrowLeft, TrendingUp, Clock, LogOut, Inbox, ShieldCheck, LifeBuoy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProducts, formatFCFA } from "@/hooks/useProducts";
@@ -17,6 +17,7 @@ import AdminRequests from "@/components/admin/AdminRequests";
 import AdminMessages from "@/components/admin/AdminMessages";
 import AdminPayments from "@/components/admin/AdminPayments";
 import AdminInvite from "@/components/admin/AdminInvite";
+import AdminCommunicationSettings from "@/components/admin/AdminCommunicationSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminOrderRequests } from "@/hooks/useOrderRequests";
 
@@ -29,6 +30,7 @@ const adminNav = [
   { label: "Paiements", icon: CreditCard, id: "payments" },
   { label: "Infos de paiement", icon: CreditCard, id: "payment-settings" },
   { label: "Commentaires", icon: MessageSquare, id: "comments" },
+  { label: "Communication & support", icon: LifeBuoy, id: "communication" },
   { label: "Administrateurs", icon: ShieldCheck, id: "admins" },
 ];
 
@@ -44,7 +46,7 @@ const Admin = () => {
 
   const { data: orders = [] } = useAdminOrders();
 
-  // Déconnexion avec redirection — SEUL endroit qui appelle signOut dans Admin
+  // Déconnexion avec redirection - SEUL endroit qui appelle signOut dans Admin
   const handleSignOut = async () => {
     await signOut();
     navigate("/", { replace: true });
@@ -175,6 +177,8 @@ const Admin = () => {
           {activeTab === "payment-settings" && <AdminPaymentSettings />}
 
           {activeTab === "comments" && <AdminMessages />}
+
+          {activeTab === "communication" && <AdminCommunicationSettings />}
 
           {activeTab === "admins" && <AdminInvite />}
         </div>

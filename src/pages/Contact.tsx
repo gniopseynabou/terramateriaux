@@ -8,6 +8,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/lib/errorUtils";
+import { useCommunicationSettings } from "@/hooks/useCommunicationSettings";
 
 const Contact = () => {
   const [name, setName] = useState("");
@@ -16,6 +17,16 @@ const Contact = () => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const { data: communication } = useCommunicationSettings();
+
+  const rawWhatsAppNumber = communication?.whatsapp_number.replace(/[^0-9]/g, "") ?? "";
+  const whatsappNumber = rawWhatsAppNumber.length === 9 ? `221${rawWhatsAppNumber}` : rawWhatsAppNumber;
+  const whatsappUrl = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(communication.whatsapp_message)}`
+    : undefined;
+  const publicEmail = communication?.public_email || "contact@tmi-senegal.com";
+  const publicPhone = communication?.whatsapp_number || "";
+  const phoneHref = publicPhone ? `tel:+${whatsappNumber}` : undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +46,7 @@ const Contact = () => {
       if (error) throw error;
       toast({ title: "Message envoyé !", description: "Nous vous répondrons dans les plus brefs délais." });
       setName(""); setEmail(""); setPhone(""); setSubject(""); setMessage("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erreur", description: getFriendlyErrorMessage(err), variant: "destructive" });
     } finally {
       setLoading(false);
@@ -54,8 +65,8 @@ const Contact = () => {
             </p>
             <div className="space-y-4">
               {[
-                { icon: Phone, label: "Téléphone", value: "+221 XX XXX XX XX" },
-                { icon: Mail, label: "Email", value: "contact@tmi-senegal.com" },
+                { icon: Phone, label: "Téléphone", value: publicPhone || "Téléphone non configuré" },
+                { icon: Mail, label: "Email", value: publicEmail },
                 { icon: MapPin, label: "Adresse", value: "Kédougou, Sénégal" },
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -64,13 +75,19 @@ const Contact = () => {
                   </div>
                   <div>
                     <div className="text-sm font-medium">{item.label}</div>
-                    <div className="text-sm text-muted-foreground">{item.value}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {item.label === "Email" ? (
+                        <a href={`mailto:${publicEmail}`} className="hover:text-primary transition-colors">{item.value}</a>
+                      ) : item.label === "Téléphone" && phoneHref ? (
+                        <a href={phoneHref} className="hover:text-primary transition-colors">{item.value}</a>
+                      ) : item.value}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-            <a href="https://wa.me/221XXXXXXXXX" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary" size="lg" className="w-full mt-4">
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block">
+              <Button variant="secondary" size="lg" className="w-full mt-4" disabled={!whatsappUrl}>
                 <MessageCircle className="h-5 w-5 mr-2" /> WhatsApp
               </Button>
             </a>

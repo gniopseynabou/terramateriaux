@@ -1,5 +1,5 @@
 /**
- * useAuth — Rétrocompatible avec tous les composants existants.
+ * useAuth - Rétrocompatible avec tous les composants existants.
  *
  * Ce hook est désormais un simple consommateur du AuthContext global.
  * L'état d'authentification est partagé dans toute l'app et ne se

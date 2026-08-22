@@ -27,7 +27,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ─── Helper — récupérer le rôle depuis Supabase ───────────────────────────────
+// ─── Helper - récupérer le rôle depuis Supabase ───────────────────────────────
 
 async function fetchRole(userId: string): Promise<string | null> {
   try {

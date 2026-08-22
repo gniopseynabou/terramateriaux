@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Displays the merchant payout accounts stored in Supabase (payment_settings).
- * No online payment gateway is connected yet — this is informational only.
+ * No online payment gateway is connected yet - this is informational only.
  */
 interface Props {
   /** When set, only this payment method is displayed (chosen at checkout). */

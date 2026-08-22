@@ -1,8 +1,19 @@
 import { Link } from "react-router-dom";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
 import logo from "@/assets/logo.jpeg?w=96&format=webp";
+import { useCommunicationSettings } from "@/hooks/useCommunicationSettings";
 
-const Footer = () => (
+const Footer = () => {
+  const { data: communication } = useCommunicationSettings();
+  const rawNumber = communication?.whatsapp_number.replace(/[^0-9]/g, "") ?? "";
+  const whatsappNumber = rawNumber.length === 9 ? `221${rawNumber}` : rawNumber;
+  const whatsappUrl = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(communication?.whatsapp_message ?? "Bonjour Terra Matériaux International.")}`
+    : undefined;
+  const displayedNumber = communication?.whatsapp_number || "Numéro WhatsApp non configuré";
+  const publicEmail = communication?.public_email || "contact@tmi-senegal.com";
+
+  return (
   <footer className="bg-secondary text-secondary-foreground">
     <div className="container mx-auto px-4 py-12">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -12,7 +23,7 @@ const Footer = () => (
             <span className="font-heading font-bold text-lg text-primary">T.M.I</span>
           </div>
           <p className="text-sm text-secondary-foreground/80">
-            Terra Matériaux International — Solutions durables et innovantes au service du développement.
+            Terra Matériaux International - Solutions durables et innovantes au service du développement.
           </p>
         </div>
 
@@ -39,8 +50,20 @@ const Footer = () => (
         <div>
           <h4 className="font-heading font-semibold mb-4 text-primary">Contact</h4>
           <ul className="space-y-3 text-sm text-secondary-foreground/80">
-            <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> +221 XX XXX XX XX</li>
-            <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contact@tmi-senegal.com</li>
+            <li className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-primary" />
+              {whatsappUrl ? (
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
+                  <span>{displayedNumber}</span><MessageCircle className="h-3.5 w-3.5" aria-label="Contacter sur WhatsApp" />
+                </a>
+              ) : <span>{displayedNumber}</span>}
+            </li>
+            <li className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" />
+              <a href={`mailto:${publicEmail}`} className="hover:text-primary transition-colors">
+                {publicEmail}
+              </a>
+            </li>
             <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Kédougou, Sénégal</li>
           </ul>
         </div>
@@ -51,6 +74,7 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;
