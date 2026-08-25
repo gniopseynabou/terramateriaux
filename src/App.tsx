@@ -72,13 +72,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, loading } = useAuth();
   if (loading) return <AuthFallback />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/auth?redirect=%2Fadmin" replace />;
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <h1 className="text-2xl font-heading font-bold">Accès refusé</h1>
-          <p className="text-muted-foreground">Vous n'avez pas les droits d'administration.</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="text-center space-y-4 max-w-md bg-card p-6 md:p-8 rounded-lg border border-border shadow-sm">
+          <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+            <span className="text-xl font-bold">!</span>
+          </div>
+          <h1 className="text-2xl font-heading font-bold">Accès administrateur requis</h1>
+          <p className="text-muted-foreground text-sm">
+            Vous êtes actuellement connecté avec <strong>{user.email}</strong>, mais ce compte n'a pas les privilèges d'administrateur.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+            <a href="/" className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+              Retour au site
+            </a>
+            <a href="/auth?redirect=%2Fadmin" className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90">
+              Changer de compte
+            </a>
+          </div>
         </div>
       </div>
     );

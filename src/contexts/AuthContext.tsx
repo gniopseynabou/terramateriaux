@@ -29,13 +29,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ─── Helper - récupérer le rôle depuis Supabase ───────────────────────────────
 
-async function fetchRole(userId: string): Promise<string | null> {
+async function fetchRole(user: User): Promise<string | null> {
   try {
-    const { data } = await supabase.rpc("has_role", {
-      _user_id: userId,
+    // 1. RPC check
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc("has_role", {
+      _user_id: user.id,
       _role: "admin",
     });
-    return data ? "admin" : "user";
+    if (!rpcErr && rpcRes) return "admin";
+
+    // 2. Direct table check on user_roles
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleRow) return "admin";
+
+    // 3. User / App metadata check
+    if (user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin") {
+      return "admin";
+    }
+
+    return "user";
   } catch {
     return "user";
   }
@@ -71,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (existingSession?.user) {
-        const r = await fetchRole(existingSession.user.id);
+        const r = await fetchRole(existingSession.user);
         if (!mounted) return;
         setSession(existingSession);
         setUser(existingSession.user);
@@ -99,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!mounted) return;
 
       if (newSession?.user) {
-        const r = await fetchRole(newSession.user.id);
+        const r = await fetchRole(newSession.user);
         if (!mounted) return;
         setSession(newSession);
         setUser(newSession.user);

@@ -21,18 +21,40 @@ import AdminCommunicationSettings from "@/components/admin/AdminCommunicationSet
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminOrderRequests } from "@/hooks/useOrderRequests";
 
-const adminNav = [
-  { label: "Tableau de bord", icon: LayoutDashboard, id: "dashboard" },
-  { label: "Produits", icon: Package, id: "products" },
-  { label: "Catégories", icon: FolderTree, id: "categories" },
-  { label: "Commandes", icon: ShoppingBag, id: "orders" },
-  { label: "Demandes clients", icon: Inbox, id: "requests" },
-  { label: "Paiements", icon: CreditCard, id: "payments" },
-  { label: "Infos de paiement", icon: CreditCard, id: "payment-settings" },
-  { label: "Commentaires", icon: MessageSquare, id: "comments" },
-  { label: "Communication & support", icon: LifeBuoy, id: "communication" },
-  { label: "Administrateurs", icon: ShieldCheck, id: "admins" },
+const navGroups = [
+  {
+    groupTitle: "Vue d'ensemble",
+    items: [
+      { label: "Tableau de bord", icon: LayoutDashboard, id: "dashboard" },
+    ],
+  },
+  {
+    groupTitle: "Gestion Commerciale",
+    items: [
+      { label: "Produits", icon: Package, id: "products" },
+      { label: "Catégories", icon: FolderTree, id: "categories" },
+      { label: "Commandes", icon: ShoppingBag, id: "orders" },
+      { label: "Demandes clients", icon: Inbox, id: "requests" },
+    ],
+  },
+  {
+    groupTitle: "Finances & Règlement",
+    items: [
+      { label: "Paiements", icon: CreditCard, id: "payments" },
+      { label: "Infos de paiement", icon: CreditCard, id: "payment-settings" },
+    ],
+  },
+  {
+    groupTitle: "Support & Paramètres",
+    items: [
+      { label: "Commentaires", icon: MessageSquare, id: "comments" },
+      { label: "Communication & support", icon: LifeBuoy, id: "communication" },
+      { label: "Administrateurs", icon: ShieldCheck, id: "admins" },
+    ],
+  },
 ];
+
+const allNavItems = navGroups.flatMap((g) => g.items);
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -46,7 +68,6 @@ const Admin = () => {
 
   const { data: orders = [] } = useAdminOrders();
 
-  // Déconnexion avec redirection - SEUL endroit qui appelle signOut dans Admin
   const handleSignOut = async () => {
     await signOut();
     navigate("/", { replace: true });
@@ -54,75 +75,130 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
+      {/* Overlay mobile */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-foreground/40 md:hidden"
+          className="fixed inset-0 z-40 bg-foreground/50 backdrop-blur-sm md:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-sidebar text-sidebar-foreground transform transition-transform md:relative md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:block`}>
-        <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
-          <span className="font-heading font-bold text-sidebar-primary">T.M.I Admin</span>
-          <Button variant="ghost" size="icon" className="md:hidden text-sidebar-foreground min-h-11 min-w-11" aria-label="Fermer le menu d'administration" onClick={() => setSidebarOpen(false)}>
+
+      {/* Barre latérale (Sidebar fixe sur ordinateur, tiroir sur mobile) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col transform transition-transform duration-200 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 border-r border-sidebar-border shadow-md ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* En-tête Sidebar fixe */}
+        <div className="p-4 border-b border-sidebar-border flex items-center justify-between shrink-0 bg-sidebar">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center font-bold text-sm">
+              TMI
+            </div>
+            <span className="font-heading font-bold text-lg text-sidebar-primary tracking-tight">
+              T.M.I Admin
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden text-sidebar-foreground min-h-10 min-w-10 hover:bg-sidebar-accent"
+            aria-label="Fermer le menu d'administration"
+            onClick={() => setSidebarOpen(false)}
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <nav className="p-2 space-y-1" aria-label="Navigation administration">
-          {adminNav.map((item) => (
-            <button
-              key={item.id}
-              aria-current={activeTab === item.id ? "page" : undefined}
-              onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
-              className={`w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar-background ${
-                activeTab === item.id
-                  ? "bg-sidebar-accent text-sidebar-primary font-semibold"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
-            >
-              <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="truncate">{item.label}</span>
-              {item.id === "requests" && pendingRequests > 0 && (
-                <span className="ml-auto shrink-0 rounded-full bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5">
-                  {pendingRequests}
-                </span>
-              )}
-            </button>
+
+        {/* Navigation complète regroupée */}
+        <nav className="p-3 space-y-5 flex-1 overflow-y-auto" aria-label="Navigation administration">
+          {navGroups.map((group, groupIdx) => (
+            <div key={groupIdx} className="space-y-1">
+              <p className="px-3 text-[11px] font-semibold text-sidebar-foreground/60 uppercase tracking-wider mb-1">
+                {group.groupTitle}
+              </p>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-primary font-bold shadow-sm"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground font-medium"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70"}`} aria-hidden="true" />
+                    <span className="truncate flex-1 text-left">{item.label}</span>
+                    {item.id === "requests" && pendingRequests > 0 && (
+                      <span className="shrink-0 rounded-full bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5">
+                        {pendingRequests}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </nav>
-        <div className="absolute bottom-4 left-4 right-4 space-y-2">
-          <Link to="/" className="text-sm text-sidebar-foreground hover:text-sidebar-primary flex items-center gap-1 min-h-11">
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour au site
+
+        {/* Pied de Sidebar fixe avec déconnexion */}
+        <div className="p-3 border-t border-sidebar-border space-y-1.5 shrink-0 bg-sidebar">
+          <Link
+            to="/"
+            className="w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary transition-colors font-medium"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="truncate">Retour au site public</span>
           </Link>
-          <button onClick={handleSignOut} className="text-sm text-sidebar-foreground hover:text-sidebar-primary flex items-center gap-1 min-h-11">
-            <LogOut className="h-4 w-4" aria-hidden="true" /> Déconnexion
+          <button
+            onClick={handleSignOut}
+            className="w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors font-medium"
+          >
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="truncate">Déconnexion</span>
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-14 border-b border-border flex items-center px-4 gap-3 bg-card sticky top-0 z-30">
-          <Button variant="ghost" size="icon" className="md:hidden min-h-11 min-w-11" aria-label="Ouvrir le menu d'administration" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}>
+      {/* Zone de contenu principal */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+        <header className="h-16 border-b border-border flex items-center px-4 md:px-6 gap-3 bg-card sticky top-0 z-30 shadow-xs">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden min-h-11 min-w-11 text-foreground"
+            aria-label="Ouvrir le menu d'administration"
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </Button>
-          <h2 className="font-heading font-semibold truncate">{adminNav.find(n => n.id === activeTab)?.label}</h2>
+          <h1 className="font-heading font-bold text-lg md:text-xl truncate text-foreground">
+            {allNavItems.find((n) => n.id === activeTab)?.label}
+          </h1>
         </header>
 
-        <div className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
+        <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
           {activeTab === "dashboard" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: "Commandes", value: String(orders.length), icon: ShoppingBag, color: "text-primary" },
-                  { label: "Revenus (estimés)", value: formatFCFA(orders.reduce((s, o) => s + (o.final_total ?? o.estimated_total ?? o.total), 0)), icon: TrendingUp, color: "text-success" },
+                  { label: "Revenus (estimés)", value: formatFCFA(orders.reduce((s, o) => s + (Number(o.final_total ?? o.estimated_total ?? o.total) || 0), 0)), icon: TrendingUp, color: "text-success" },
                   { label: "Paiement à vérifier", value: String(orders.filter(o => o.order_status === "PAIEMENT_EN_ATTENTE_VERIFICATION" || o.order_status === "EN_ATTENTE_PAIEMENT").length), icon: Clock, color: "text-warning" },
                   { label: "Demandes en attente", value: String(pendingRequests), icon: Inbox, color: "text-secondary" },
                   { label: "Produits actifs", value: String(products.length), icon: Package, color: "text-primary" },
                   { label: "Catégories", value: String(categories.length), icon: FolderTree, color: "text-secondary" },
                 ].map((s, i) => (
-                  <div key={i} className="bg-card p-4 rounded-lg border border-border min-w-0">
+                  <div key={i} className="bg-card p-4 rounded-lg border border-border min-w-0 shadow-xs">
                     <div className="flex items-center gap-2 mb-2">
                       <s.icon className={`h-5 w-5 ${s.color}`} />
                       <span className="text-xs text-muted-foreground truncate">{s.label}</span>
@@ -133,11 +209,11 @@ const Admin = () => {
               </div>
 
               <div>
-                <h3 className="font-heading font-semibold mb-3">Commandes récentes</h3>
-                <div className="bg-card rounded-lg border border-border overflow-x-auto">
+                <h2 className="font-heading font-semibold text-lg mb-3">Commandes récentes</h2>
+                <div className="bg-card rounded-lg border border-border overflow-x-auto shadow-xs">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border text-left">
+                      <tr className="border-b border-border text-left bg-muted/30">
                         <th className="p-3 font-medium text-muted-foreground">N°</th>
                         <th className="p-3 font-medium text-muted-foreground">Client</th>
                         <th className="p-3 font-medium text-muted-foreground">Total</th>
@@ -149,7 +225,7 @@ const Admin = () => {
                       {orders.length === 0 ? (
                         <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Aucune commande encore.</td></tr>
                       ) : orders.slice(0, 10).map((o) => (
-                        <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                        <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                           <td className="p-3 font-medium whitespace-nowrap">{o.order_number}</td>
                           <td className="p-3 whitespace-nowrap">{o.customer_name}</td>
                           <td className="p-3 font-medium whitespace-nowrap">{formatFCFA(o.final_total ?? o.estimated_total ?? o.total)}</td>
@@ -181,7 +257,7 @@ const Admin = () => {
           {activeTab === "communication" && <AdminCommunicationSettings />}
 
           {activeTab === "admins" && <AdminInvite />}
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCategories } from "@/hooks/useCategories";
-import { getCategoryIcon } from "@/lib/categoryIcons";
+import { getCategoryIcon, AVAILABLE_CATEGORY_ICONS } from "@/lib/categoryIcons";
 
 type Category = Tables<"categories">;
 
@@ -130,10 +130,30 @@ const AdminCategories = () => {
                 placeholder={slugify(form.name)}
                 onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cat-icon">Icône (ex. hammer, tractor, shirt)</Label>
-              <Input id="cat-icon" className="h-11" maxLength={40} value={form.icon_name}
-                onChange={(e) => setForm({ ...form, icon_name: e.target.value })} />
+            <div className="space-y-2">
+              <Label>Choisir une icône (sélection dans la liste)</Label>
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border border-border rounded-lg bg-muted/20">
+                {AVAILABLE_CATEGORY_ICONS.map((item) => {
+                  const IconComp = item.icon;
+                  const isSelected = form.icon_name === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, icon_name: item.id })}
+                      title={item.label}
+                      className={`flex flex-col items-center justify-center p-2 rounded-md border text-center transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/10 text-primary font-bold shadow-xs ring-2 ring-primary/30"
+                          : "border-border hover:bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <IconComp className="h-5 w-5 mb-1 shrink-0" />
+                      <span className="text-[10px] truncate w-full">{item.label.split(" ")[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cat-desc">Description</Label>

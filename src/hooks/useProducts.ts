@@ -8,8 +8,8 @@ export type DbProduct = Tables<"products"> & {
 
 const EURO_RATE = 655.957;
 export const fcfaToEuro = (fcfa: number) => (fcfa / EURO_RATE).toFixed(2);
-export const formatFCFA = (amount: number) =>
-  new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
+export const formatFCFA = (amount: number | string | null | undefined) =>
+  new Intl.NumberFormat("fr-FR").format(Number(amount) || 0) + " FCFA";
 
 export const useProducts = (categorySlug?: string) => {
   return useQuery({
