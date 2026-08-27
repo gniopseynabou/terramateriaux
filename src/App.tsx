@@ -26,6 +26,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Profile = lazy(() => import("./pages/Profile"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -134,6 +135,11 @@ const RouterApp = () => (
       {/* Route admin */}
       <Route path="/admin" element={
         <AdminRoute><Admin /></AdminRoute>
+      } />
+
+      {/* Route livreur */}
+      <Route path="/livreur" element={
+        <ProtectedRoute><DriverDashboard /></ProtectedRoute>
       } />
 
       <Route path="*" element={<NotFound />} />

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import type { Tables } from "@/integrations/supabase/types";
+import { useActivePromotions } from "@/hooks/usePromotions";
+import { getBestPromotionForProduct } from "@/lib/promotions";
 
 type DbProduct = Tables<"products">;
 
@@ -29,6 +31,8 @@ interface CartContextType {
   clearCart: () => void;
   isInCart: (productId: string) => boolean;
   totalItems: number;
+  rawSubtotal: number;
+  discountTotal: number;
   subtotal: number;
   deliveryFee: number;
   setDeliveryFee: (fee: number) => void;
@@ -66,6 +70,7 @@ const loadCart = (): PersistedCart | null => {
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const persisted = typeof window !== "undefined" ? loadCart() : null;
+  const { data: promotions = [] } = useActivePromotions();
 
   const [items, setItems] = useState<CartItem[]>(persisted?.items ?? []);
   const [deliveryMethod, setDeliveryMethod] = useState<"livraison" | "retrait">(
@@ -121,10 +126,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const totalItems = items.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = items.reduce(
-    (s, i) => s + (i.isGros ? i.product.price_gros : i.product.price_fcfa) * i.quantity,
-    0
-  );
+
+  const rawSubtotal = items.reduce((s, i) => {
+    const unit = i.isGros ? i.product.price_gros : i.product.price_fcfa;
+    return s + unit * i.quantity;
+  }, 0);
+
+  const discountTotal = items.reduce((s, i) => {
+    if (i.isGros) return s;
+    const promo = getBestPromotionForProduct(i.product, promotions);
+    if (!promo) return s;
+    return s + promo.discountAmount * i.quantity;
+  }, 0);
+
+  const subtotal = Math.max(0, rawSubtotal - discountTotal);
   const effectiveFee = deliveryMethod === "retrait" ? 0 : deliveryFee;
   const total = subtotal + effectiveFee;
 
@@ -132,7 +147,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     <CartContext.Provider
       value={{
         items, addItem, removeItem, updateQuantity, clearCart, isInCart,
-        totalItems, subtotal,
+        totalItems, rawSubtotal, discountTotal, subtotal,
         deliveryFee: effectiveFee, setDeliveryFee,
         deliveryMethod, setDeliveryMethod,
         customer, setCustomer,

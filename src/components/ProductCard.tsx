@@ -4,14 +4,21 @@ import SmartImage from "@/components/SmartImage";
 import { formatFCFA, fcfaToEuro } from "@/hooks/useProducts";
 import { resolveProductImage } from "@/data/productImages";
 import type { Tables } from "@/integrations/supabase/types";
+import { useActivePromotions } from "@/hooks/usePromotions";
+import { getBestPromotionForProduct } from "@/lib/promotions";
+import { Tag } from "lucide-react";
 
 type DbProduct = Tables<"products">;
 
 const ProductCard = ({ product, priority = false }: { product: DbProduct; priority?: boolean }) => {
   const { src, srcSet } = resolveProductImage(product.slug, product.image_url);
+  const { data: promotions = [] } = useActivePromotions();
+  const promoResult = getBestPromotionForProduct(product, promotions);
+
+  const finalPrice = promoResult ? promoResult.discountedPrice : product.price_fcfa;
 
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-all duration-300 group">
+    <div className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-all duration-300 group relative">
       <div className="aspect-square bg-muted relative overflow-hidden">
         <SmartImage
           src={src}
@@ -22,6 +29,15 @@ const ProductCard = ({ product, priority = false }: { product: DbProduct; priori
           wrapperClassName="w-full h-full"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
+
+        {promoResult && (
+          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+            <span className="bg-destructive text-destructive-foreground font-bold text-xs px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1">
+              <Tag className="h-3 w-3" /> PROMO {promoResult.badgeLabel}
+            </span>
+          </div>
+        )}
+
         {!product.in_stock && (
           <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
             <span className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-semibold">
@@ -37,11 +53,18 @@ const ProductCard = ({ product, priority = false }: { product: DbProduct; priori
           </h3>
         </Link>
         <div className="space-y-1">
-          <div className="flex items-baseline gap-2">
-            <span className="font-heading font-bold text-primary">{formatFCFA(product.price_fcfa)}</span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-heading font-bold text-primary text-base sm:text-lg">
+              {formatFCFA(finalPrice)}
+            </span>
+            {promoResult && (
+              <span className="text-xs text-muted-foreground line-through">
+                {formatFCFA(product.price_fcfa)}
+              </span>
+            )}
           </div>
           <div className="text-xs text-muted-foreground">
-            ≈ {fcfaToEuro(product.price_fcfa)} €
+            ≈ {fcfaToEuro(finalPrice)} €
           </div>
           <div className="text-xs text-success font-medium">
             Gros : {formatFCFA(product.price_gros)} (min. {product.min_gros})

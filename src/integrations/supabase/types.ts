@@ -131,6 +131,259 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_drivers: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          main_zone: string | null
+          phone: string
+          status: 'DISPONIBLE' | 'EN_LIVRAISON' | 'INDISPONIBLE' | 'DESACTIVE'
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean
+          last_name: string
+          main_zone?: string | null
+          phone: string
+          status?: 'DISPONIBLE' | 'EN_LIVRAISON' | 'INDISPONIBLE' | 'DESACTIVE'
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          main_zone?: string | null
+          phone?: string
+          status?: 'DISPONIBLE' | 'EN_LIVRAISON' | 'INDISPONIBLE' | 'DESACTIVE'
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      deliveries: {
+        Row: {
+          assigned_at: string | null
+          completed_at: string | null
+          created_at: string
+          driver_id: string | null
+          id: string
+          issue_reason: string | null
+          notes: string | null
+          order_id: string
+          proof_type: string | null
+          proof_url: string | null
+          started_at: string | null
+          status: 'A_PREPARER' | 'PRETE' | 'AFFECTEE' | 'EN_COURS' | 'LIVREE' | 'ANNULEE' | 'ECHEC' | 'CLIENT_ABSENT' | 'ADRESSE_INCORRECTE' | 'REPORTEE'
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          driver_id?: string | null
+          id?: string
+          issue_reason?: string | null
+          notes?: string | null
+          order_id: string
+          proof_type?: string | null
+          proof_url?: string | null
+          started_at?: string | null
+          status?: 'A_PREPARER' | 'PRETE' | 'AFFECTEE' | 'EN_COURS' | 'LIVREE' | 'ANNULEE' | 'ECHEC' | 'CLIENT_ABSENT' | 'ADRESSE_INCORRECTE' | 'REPORTEE'
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          driver_id?: string | null
+          id?: string
+          issue_reason?: string | null
+          notes?: string | null
+          order_id?: string
+          proof_type?: string | null
+          proof_url?: string | null
+          started_at?: string | null
+          status?: 'A_PREPARER' | 'PRETE' | 'AFFECTEE' | 'EN_COURS' | 'LIVREE' | 'ANNULEE' | 'ECHEC' | 'CLIENT_ABSENT' | 'ADRESSE_INCORRECTE' | 'REPORTEE'
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      delivery_history: {
+        Row: {
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          delivery_id: string
+          driver_id: string | null
+          id: string
+          order_id: string
+          proof_url: string | null
+          status: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_id: string
+          driver_id?: string | null
+          id?: string
+          order_id: string
+          proof_url?: string | null
+          status: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_id?: string
+          driver_id?: string | null
+          id?: string
+          order_id?: string
+          proof_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_history_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      delivery_settings: {
+        Row: {
+          free_delivery_enabled: boolean
+          free_delivery_min_amount: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          free_delivery_enabled?: boolean
+          free_delivery_min_amount?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          free_delivery_enabled?: boolean
+          free_delivery_min_amount?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          discount_type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+          discount_value: number
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          status: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'EXPIRED' | 'DISABLED'
+          target_type: 'ALL_PRODUCTS' | 'CATEGORY' | 'SPECIFIC_PRODUCTS'
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          discount_type?: 'PERCENTAGE' | 'FIXED_AMOUNT'
+          discount_value: number
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          status?: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'EXPIRED' | 'DISABLED'
+          target_type?: 'ALL_PRODUCTS' | 'CATEGORY' | 'SPECIFIC_PRODUCTS'
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          discount_type?: 'PERCENTAGE' | 'FIXED_AMOUNT'
+          discount_value?: number
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          status?: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'EXPIRED' | 'DISABLED'
+          target_type?: 'ALL_PRODUCTS' | 'CATEGORY' | 'SPECIFIC_PRODUCTS'
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      promotion_products: {
+        Row: {
+          product_id: string
+          promotion_id: string
+        }
+        Insert: {
+          product_id: string
+          promotion_id: string
+        }
+        Update: {
+          product_id?: string
+          promotion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_products_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       notifications: {
         Row: {
           created_at: string

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
-import { ArrowRight, Info, ShoppingBag } from "lucide-react";
+import { ArrowRight, Info, ShoppingBag, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { useCart } from "@/contexts/CartContext";
 import { formatFCFA } from "@/hooks/useProducts";
 import { useCreateOrder } from "@/hooks/useOrders";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
+import { useActivePromotions } from "@/hooks/usePromotions";
+import { getBestPromotionForProduct } from "@/lib/promotions";
 
 const checkoutSchema = z.object({
   nom: z.string().trim().min(2, "Nom trop court").max(100),
@@ -27,7 +29,8 @@ const checkoutSchema = z.object({
 });
 
 const Checkout = () => {
-  const { items, subtotal, deliveryFee, total, deliveryMethod, customer, setCustomer, clearCart } = useCart();
+  const { items, rawSubtotal, discountTotal, subtotal, deliveryFee, total, deliveryMethod, customer, setCustomer, clearCart } = useCart();
+  const { data: promotions = [] } = useActivePromotions();
   const navigate = useNavigate();
   const createOrder = useCreateOrder();
   const { data: paymentMethods = [] } = usePaymentSettings();
@@ -86,17 +89,24 @@ const Checkout = () => {
         delivery_quarter: parsed.data.quartier,
         delivery_fee: deliveryFee,
         subtotal,
+        discount_total: discountTotal,
         total,
         payment_method: paymentMethod,
         items: items.map((item) => {
-          const unit = item.isGros ? item.product.price_gros : item.product.price_fcfa;
+          const promo = !item.isGros ? getBestPromotionForProduct(item.product, promotions) : null;
+          const origPrice = item.isGros ? item.product.price_gros : item.product.price_fcfa;
+          const finalUnitPrice = item.isGros ? item.product.price_gros : (promo ? promo.discountedPrice : item.product.price_fcfa);
+          const itemDiscount = promo ? promo.discountAmount : 0;
+
           return {
             product_id: item.product.id,
             product_name: item.product.name,
             quantity: item.quantity,
-            unit_price: unit,
+            unit_price: finalUnitPrice,
+            original_price: origPrice,
+            discount_amount: itemDiscount * item.quantity,
             is_gros: item.isGros,
-            subtotal: unit * item.quantity,
+            subtotal: finalUnitPrice * item.quantity,
           };
         }),
       });
@@ -188,26 +198,36 @@ const Checkout = () => {
               <h2 className="font-heading font-semibold text-lg">Récapitulatif</h2>
               <ul className="space-y-2 text-sm">
                 {items.map((i) => {
-                  const unit = i.isGros ? i.product.price_gros : i.product.price_fcfa;
+                  const promo = !i.isGros ? getBestPromotionForProduct(i.product, promotions) : null;
+                  const unit = i.isGros ? i.product.price_gros : (promo ? promo.discountedPrice : i.product.price_fcfa);
                   return (
                     <li key={i.product.id} className="flex justify-between gap-3">
                       <span className="min-w-0">
                         {i.product.name} × {i.quantity}
                         <span className="block text-xs text-muted-foreground">{formatFCFA(unit)} / unité</span>
                       </span>
-                      <span className="whitespace-nowrap">{formatFCFA(unit * i.quantity)}</span>
+                      <span className="whitespace-nowrap font-medium">{formatFCFA(unit * i.quantity)}</span>
                     </li>
                   );
                 })}
               </ul>
               <div className="border-t border-border pt-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span>Sous-total</span><span>{formatFCFA(subtotal)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Sous-total brut</span><span>{formatFCFA(rawSubtotal)}</span></div>
+                {discountTotal > 0 && (
+                  <div className="flex justify-between text-destructive font-medium">
+                    <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Réduction promo</span>
+                    <span>-{formatFCFA(discountTotal)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold"><span>Sous-total produits</span><span>{formatFCFA(subtotal)}</span></div>
                 <div className="flex justify-between">
                   <span>Frais de livraison</span>
-                  <span>{deliveryMethod === "retrait" ? "0 FCFA (retrait)" : formatFCFA(deliveryFee)}</span>
+                  <span className={deliveryFee === 0 ? "text-green-600 font-medium" : ""}>
+                    {deliveryMethod === "retrait" ? "0 FCFA (retrait)" : (deliveryFee === 0 ? "Gratuit" : formatFCFA(deliveryFee))}
+                  </span>
                 </div>
-                <div className="flex justify-between font-heading font-bold text-base pt-1">
-                  <span>Total estimatif</span><span className="text-primary">{formatFCFA(total)}</span>
+                <div className="flex justify-between font-heading font-bold text-lg pt-2 border-t border-border">
+                  <span>Total à payer</span><span className="text-primary">{formatFCFA(total)}</span>
                 </div>
               </div>
               <p className="flex items-start gap-2 text-xs bg-accent/60 rounded-md p-3">

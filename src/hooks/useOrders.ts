@@ -26,6 +26,8 @@ export interface CreateOrderItemInput {
   unit_price: number;
   is_gros: boolean;
   subtotal: number;
+  original_price?: number;
+  discount_amount?: number;
 }
 
 export interface CreateOrderInput {
@@ -40,6 +42,8 @@ export interface CreateOrderInput {
   delivery_quarter?: string;
   delivery_fee: number;
   subtotal: number;
+  discount_total?: number;
+  promotion_id?: string;
   total: number;
   payment_method: string;
   items: CreateOrderItemInput[];
@@ -58,10 +62,25 @@ export const useCreateOrder = () => {
         payload: input as any
       });
       if (error) throw error;
-      return data as unknown as DbOrder;
+      const order = data as unknown as DbOrder;
+
+      // Auto-create initial delivery record for this order
+      if (order && order.id) {
+        try {
+          await supabase.from("deliveries").insert({
+            order_id: order.id,
+            status: "A_PREPARER",
+          });
+        } catch {
+          // ignore duplicate if trigger or function created it
+        }
+      }
+
+      return order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },

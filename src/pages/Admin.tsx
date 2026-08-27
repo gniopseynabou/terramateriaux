@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, FolderTree, ShoppingBag, CreditCard, MessageSquare,
-  Menu, X, ArrowLeft, TrendingUp, Clock, LogOut, Inbox, ShieldCheck, LifeBuoy
+  Menu, X, ArrowLeft, TrendingUp, Clock, LogOut, Inbox, ShieldCheck, LifeBuoy,
+  Truck, Tag, Users, MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProducts, formatFCFA } from "@/hooks/useProducts";
@@ -18,6 +19,10 @@ import AdminMessages from "@/components/admin/AdminMessages";
 import AdminPayments from "@/components/admin/AdminPayments";
 import AdminInvite from "@/components/admin/AdminInvite";
 import AdminCommunicationSettings from "@/components/admin/AdminCommunicationSettings";
+import AdminDrivers from "@/components/admin/AdminDrivers";
+import AdminDeliveryZones from "@/components/admin/AdminDeliveryZones";
+import AdminDeliveries from "@/components/admin/AdminDeliveries";
+import AdminPromotions from "@/components/admin/AdminPromotions";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminOrderRequests } from "@/hooks/useOrderRequests";
 
@@ -35,6 +40,20 @@ const navGroups = [
       { label: "Catégories", icon: FolderTree, id: "categories" },
       { label: "Commandes", icon: ShoppingBag, id: "orders" },
       { label: "Demandes clients", icon: Inbox, id: "requests" },
+    ],
+  },
+  {
+    groupTitle: "Livraisons",
+    items: [
+      { label: "Suivi livraisons", icon: Truck, id: "deliveries" },
+      { label: "Livreurs", icon: Users, id: "drivers" },
+      { label: "Zones de livraison", icon: MapPin, id: "delivery-zones" },
+    ],
+  },
+  {
+    groupTitle: "Promotions",
+    items: [
+      { label: "Promotions", icon: Tag, id: "promotions" },
     ],
   },
   {
@@ -247,6 +266,14 @@ const Admin = () => {
           {activeTab === "orders" && <AdminOrders />}
 
           {activeTab === "requests" && <AdminRequests />}
+
+          {activeTab === "deliveries" && <AdminDeliveries />}
+
+          {activeTab === "drivers" && <AdminDrivers />}
+
+          {activeTab === "delivery-zones" && <AdminDeliveryZones />}
+
+          {activeTab === "promotions" && <AdminPromotions />}
 
           {activeTab === "payments" && <AdminPayments />}
 

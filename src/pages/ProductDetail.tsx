@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Minus, Plus, ArrowLeft } from "lucide-react";
+import { Minus, Plus, ArrowLeft, Tag } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton";
 import SmartImage from "@/components/SmartImage";
 import { resolveProductImage } from "@/data/productImages";
@@ -9,12 +9,19 @@ import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
 import { useProduct, formatFCFA, fcfaToEuro } from "@/hooks/useProducts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActivePromotions } from "@/hooks/usePromotions";
+import { getBestPromotionForProduct } from "@/lib/promotions";
 
 const ProductDetail = () => {
   const { slug } = useParams();
   const { data: product, isLoading } = useProduct(slug || "");
+  const { data: promotions = [] } = useActivePromotions();
   const [qty, setQty] = useState(1);
   const [isGros, setIsGros] = useState(false);
+
+  const promoResult = product && !isGros ? getBestPromotionForProduct(product, promotions) : null;
+  const regularPrice = product ? (isGros ? product.price_gros : product.price_fcfa) : 0;
+  const price = promoResult ? promoResult.discountedPrice : regularPrice;
 
   if (isLoading) {
     return (
@@ -45,7 +52,6 @@ const ProductDetail = () => {
     );
   }
 
-  const price = isGros ? product.price_gros : product.price_fcfa;
   const { src: imgSrc, srcSet: imgSrcSet } = resolveProductImage(product.slug, product.image_url);
 
   return (
@@ -57,7 +63,7 @@ const ProductDetail = () => {
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Images */}
-          <div className="space-y-3">
+          <div className="space-y-3 relative">
             <SmartImage
               src={imgSrc}
               srcSet={imgSrcSet}
@@ -67,6 +73,13 @@ const ProductDetail = () => {
               wrapperClassName="aspect-square rounded-lg"
               className="w-full h-full object-cover"
             />
+            {promoResult && (
+              <div className="absolute top-3 left-3 z-10">
+                <span className="bg-destructive text-destructive-foreground font-bold text-sm px-3 py-1 rounded-md shadow-md flex items-center gap-1.5">
+                  <Tag className="h-4 w-4" /> Offre Spéciale {promoResult.badgeLabel}
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2">
               {[0, 1, 2].map((i) => (
                 <SmartImage
@@ -110,8 +123,20 @@ const ProductDetail = () => {
             </div>
 
             <div className="space-y-1">
-              <div className="text-3xl font-heading font-bold text-primary">{formatFCFA(price)}</div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-heading font-bold text-primary">{formatFCFA(price)}</span>
+                {promoResult && (
+                  <span className="text-lg text-muted-foreground line-through">
+                    {formatFCFA(product.price_fcfa)}
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-muted-foreground">≈ {fcfaToEuro(price)} €</div>
+              {promoResult && (
+                <p className="text-xs text-destructive font-medium">
+                  Économisez {formatFCFA(promoResult.discountAmount)} (-{promoResult.savingsPercent}%) grâce à la promotion active !
+                </p>
+              )}
             </div>
 
             {/* Quantity */}
