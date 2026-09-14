@@ -17,9 +17,11 @@ import { useActivePromotions } from "@/hooks/usePromotions";
 import { getBestPromotionForProduct } from "@/lib/promotions";
 import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 
+const SENEGAL_PHONE_REGEX = /^(?:\+221|00221)?\s*(7[05678]\s*\d{3}\s*\d{2}\s*\d{2}|7[05678]\d{7})$/;
+
 const checkoutSchema = z.object({
   nom: z.string().trim().min(2, "Nom trop court").max(100),
-  tel: z.string().trim().min(6, "Téléphone invalide").max(30),
+  tel: z.string().trim().regex(SENEGAL_PHONE_REGEX, "Numéro de téléphone invalide (ex: 771234567 ou +221 771234567)"),
   email: z.union([z.string().trim().email("Email invalide").max(255), z.literal("")]),
   region: z.string().trim().min(2, "Région requise").max(100),
   ville: z.string().trim().min(2, "Ville requise").max(100),
@@ -37,6 +39,7 @@ const Checkout = () => {
   const { data: paymentMethods = [] } = usePaymentSettings();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const field = (key: keyof typeof customer) => ({
     value: customer[key],
@@ -62,6 +65,8 @@ const Checkout = () => {
   ];
 
   const handleSubmit = async () => {
+    if (isSubmitting || createOrder.isPending) return;
+
     const parsed = checkoutSchema.safeParse(customer);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -75,6 +80,7 @@ const Checkout = () => {
       return;
     }
     setErrors({});
+    setIsSubmitting(true);
 
     try {
       const order = await createOrder.mutateAsync({
@@ -115,6 +121,8 @@ const Checkout = () => {
       navigate(`/confirmation/${order.order_number}`);
     } catch (e) {
       toast.error("Enregistrement impossible", { description: getFriendlyErrorMessage(e) });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -136,7 +144,7 @@ const Checkout = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="tel">Téléphone *</Label>
-                  <Input id="tel" maxLength={30} {...field("tel")} />{err("tel")}
+                  <Input id="tel" maxLength={30} placeholder="77 123 45 67" {...field("tel")} />{err("tel")}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email (optionnel)</Label>
@@ -236,8 +244,8 @@ const Checkout = () => {
                 Le montant affiché est estimatif. Les frais de livraison et le montant final peuvent être ajustés
                 par notre équipe avant l'expédition.
               </p>
-              <Button className="w-full" size="lg" disabled={createOrder.isPending} onClick={handleSubmit}>
-                {createOrder.isPending ? "Enregistrement..." : "Confirmer ma commande"}
+              <Button className="w-full" size="lg" disabled={createOrder.isPending || isSubmitting} onClick={handleSubmit}>
+                {createOrder.isPending || isSubmitting ? "Enregistrement..." : "Confirmer ma commande"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </section>

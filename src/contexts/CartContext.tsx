@@ -49,20 +49,26 @@ const emptyCustomer: CustomerInfo = {
   nom: "", tel: "", email: "", adresse: "", region: "", ville: "", quartier: "", repere: "", commentaire: "",
 };
 
-const STORAGE_KEY = "tmi-cart-v1";
+const CART_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 interface PersistedCart {
   items: CartItem[];
   deliveryMethod: "livraison" | "retrait";
   deliveryFee: number;
   customer: CustomerInfo;
+  updatedAt?: number;
 }
 
 const loadCart = (): PersistedCart | null => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PersistedCart;
+    const parsed = JSON.parse(raw) as PersistedCart;
+    if (parsed.updatedAt && Date.now() - parsed.updatedAt > CART_EXPIRATION_MS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -80,7 +86,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [customer, setCustomer] = useState<CustomerInfo>({ ...emptyCustomer, ...(persisted?.customer ?? {}) });
 
   useEffect(() => {
-    const payload: PersistedCart = { items, deliveryMethod, deliveryFee, customer };
+    const payload: PersistedCart = { items, deliveryMethod, deliveryFee, customer, updatedAt: Date.now() };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
