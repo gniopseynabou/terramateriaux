@@ -1,7 +1,11 @@
-export const getFriendlyErrorMessage = (error: any): string => {
+export const getFriendlyErrorMessage = (error: unknown): string => {
   if (!error) return "Une erreur inattendue est survenue.";
 
-  const message = (error?.message || error?.error_description || (typeof error === "string" ? error : "")).toLowerCase();
+  const details = typeof error === "object" && error !== null
+    ? error as { message?: unknown; error_description?: unknown }
+    : null;
+  const rawMessage = details?.message || details?.error_description || (typeof error === "string" ? error : "");
+  const message = String(rawMessage).toLowerCase();
 
   // Network / Connection
   if (message.includes("fetch failed") || message.includes("network") || message.includes("failed to fetch")) {

@@ -45,7 +45,7 @@ const Auth = () => {
       });
       if (error) throw error;
       setSent(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erreur", description: getFriendlyErrorMessage(err), variant: "destructive" });
     } finally {
       setLoading(false);

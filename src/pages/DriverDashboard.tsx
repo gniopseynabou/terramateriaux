@@ -15,26 +15,25 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDriverDeliveries, useUpdateDeliveryStatusSimple } from "@/hooks/useDeliveries";
 import type { DeliveryWithDetails } from "@/hooks/useDeliveries";
 import { formatFCFA } from "@/hooks/useProducts";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 
 const DELIVERY_STATUS = [
-  { value: "EN_ATTENTE", label: "En attente", icon: Clock, color: "bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-400/30" },
-  { value: "ACCEPTEE", label: "Acceptée", icon: CheckCircle2, color: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-400/30" },
-  { value: "EN_TRANSIT", label: "En transit", icon: Navigation, color: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-400/30" },
+  { value: "AFFECTEE", label: "Affectée", icon: CheckCircle2, color: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-400/30" },
+  { value: "EN_COURS", label: "En cours", icon: Navigation, color: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-400/30" },
   { value: "LIVREE", label: "Livrée ✓", icon: CheckCircle2, color: "bg-green-500/15 text-green-700 dark:text-green-300 border-green-400/30" },
-  { value: "ECHOUEE", label: "Échec", icon: XCircle, color: "bg-destructive/15 text-destructive border-destructive/30" },
-  { value: "RETOURNEE", label: "Retournée", icon: AlertCircle, color: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-400/30" },
+  { value: "ECHEC", label: "Échec", icon: XCircle, color: "bg-destructive/15 text-destructive border-destructive/30" },
+  { value: "REPORTEE", label: "Reportée", icon: AlertCircle, color: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-400/30" },
 ];
 
 const getStatusConfig = (status: string) =>
   DELIVERY_STATUS.find((s) => s.value === status) || DELIVERY_STATUS[0];
 
 const NEXT_STATUS_OPTIONS: Record<string, string[]> = {
-  EN_ATTENTE: ["ACCEPTEE", "ECHOUEE"],
-  ACCEPTEE: ["EN_TRANSIT", "ECHOUEE"],
-  EN_TRANSIT: ["LIVREE", "ECHOUEE", "RETOURNEE"],
+  AFFECTEE: ["EN_COURS"],
+  EN_COURS: ["LIVREE", "ECHEC", "REPORTEE"],
   LIVREE: [],
-  ECHOUEE: ["EN_ATTENTE"],
-  RETOURNEE: [],
+  ECHEC: ["REPORTEE"],
+  REPORTEE: [],
 };
 
 const DriverDashboard = () => {
@@ -71,21 +70,21 @@ const DriverDashboard = () => {
     try {
       await updateStatus.mutateAsync({
         deliveryId: statusDialog.delivery.id,
-        status: newStatus,
+        status: newStatus as DeliveryWithDetails["status"],
         notes: notes.trim() || undefined,
       });
       toast.success(`Statut mis à jour : ${getStatusConfig(newStatus).label}`);
       setStatusDialog({ open: false, delivery: null });
     } catch (e) {
-      toast.error("Mise à jour impossible", { description: (e as Error).message });
+      toast.error("Mise à jour impossible", { description: getFriendlyErrorMessage(e) });
     }
   };
 
   const stats = {
     total: deliveries.length,
-    en_transit: deliveries.filter((d) => d.status === "EN_TRANSIT").length,
+    en_transit: deliveries.filter((d) => d.status === "EN_COURS").length,
     livrees: deliveries.filter((d) => d.status === "LIVREE").length,
-    en_attente: deliveries.filter((d) => ["EN_ATTENTE", "ACCEPTEE"].includes(d.status)).length,
+    en_attente: deliveries.filter((d) => d.status === "AFFECTEE").length,
   };
 
   if (isLoading) {
@@ -216,8 +215,8 @@ const DriverDashboard = () => {
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                             <span>{order?.delivery_region && `${order.delivery_region}, `}{order?.delivery_city || "—"}</span>
                           </div>
-                          {order?.customer_address && (
-                            <p className="text-xs text-muted-foreground pl-5">{order.customer_address}</p>
+                          {order?.delivery_address && (
+                            <p className="text-xs text-muted-foreground pl-5">{order.delivery_address}</p>
                           )}
                         </div>
                       </div>
@@ -288,7 +287,7 @@ const DriverDashboard = () => {
               <Select value={newStatus} onValueChange={setNewStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(NEXT_STATUS_OPTIONS[statusDialog.delivery?.status || "EN_ATTENTE"] || []).map((s) => {
+                  {(NEXT_STATUS_OPTIONS[statusDialog.delivery?.status || "AFFECTEE"] || []).map((s) => {
                     const cfg = getStatusConfig(s);
                     return <SelectItem key={s} value={s}>{cfg.label}</SelectItem>;
                   })}

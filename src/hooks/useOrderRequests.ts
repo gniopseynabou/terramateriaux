@@ -169,13 +169,14 @@ export const useHandleOrderRequest = () => {
         .eq("id", id);
       if (error) throw error;
 
-      await supabase.from("notifications").insert({
+      const { error: notificationError } = await supabase.from("notifications").insert({
         user_id: userId,
         order_id: orderId,
         title: status === "ACCEPTEE" ? "Demande acceptée" : status === "REFUSEE" ? "Demande refusée" : "Demande traitée",
         message: response || `Votre demande a été ${REQUEST_STATUS_LABELS[status].toLowerCase()}.`,
         type: "order",
       });
+      if (notificationError) throw notificationError;
     },
     onSuccess: () => invalidate(qc),
   });

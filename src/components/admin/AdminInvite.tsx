@@ -31,11 +31,10 @@ const AdminInvite = () => {
   const fetchAdmins = useCallback(async () => {
     setLoadingAdmins(true);
     try {
-      // @ts-expect-error rpc n'est pas typé
       const { data, error } = await supabase.rpc("get_admin_users");
       
       if (error) throw error;
-      setAdmins((data as AdminUser[]) ?? []);
+      setAdmins((data as unknown as AdminUser[]) ?? []);
     } catch (err: unknown) {
       toast.error("Impossible de charger la liste des admins : " + (err instanceof Error ? err.message : "Erreur inconnue"));
     } finally {
@@ -82,8 +81,11 @@ const AdminInvite = () => {
 
     setRevokingId(targetUserId);
     try {
-      // @ts-expect-error rpc n'est pas typé
-      const { error } = await supabase.rpc("revoke_admin_role", {
+      const revokeAdminRole = supabase.rpc as unknown as (
+        functionName: string,
+        args: { target_user_id: string },
+      ) => Promise<{ error: Error | null }>;
+      const { error } = await revokeAdminRole("revoke_admin_role", {
         target_user_id: targetUserId,
       });
       if (error) throw error;

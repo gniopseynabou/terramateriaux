@@ -25,7 +25,7 @@ BEGIN
   _anon_key    := current_setting('app.settings.anon_key', true);
 
   -- N'envoyer que si le statut a vraiment changé
-  IF OLD.status IS DISTINCT FROM NEW.status THEN
+  IF OLD.order_status IS DISTINCT FROM NEW.order_status THEN
     PERFORM net.http_post(
       url     := 'https://' || _project_ref || '.supabase.co/functions/v1/send-order-email',
       headers := jsonb_build_object(

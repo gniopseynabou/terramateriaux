@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDeliveries, useAssignDriver, useUpdateDeliveryStatus, useDeliveryHistory, type DeliveryWithDetails } from "@/hooks/useDeliveries";
+import { useDeliveries, useAssignDriver, useUpdateDeliveryStatus, useDeliveryHistory, type DeliveryWithDetails, type UpdateDeliveryStatusPayload } from "@/hooks/useDeliveries";
 import { useActiveDrivers } from "@/hooks/useDrivers";
 import { formatFCFA } from "@/hooks/useProducts";
 
@@ -109,7 +109,7 @@ const AdminDeliveries = () => {
       await updateStatus.mutateAsync({
         delivery_id: statusModalDelivery.id,
         order_id: statusModalDelivery.order_id,
-        status: targetStatus as any,
+        status: targetStatus as UpdateDeliveryStatusPayload["status"],
         comment: commentText.trim() || undefined,
         issue_reason: issueReason.trim() || undefined,
         driver_id: statusModalDelivery.driver_id,

@@ -13,6 +13,8 @@ const getCorsHeaders = (req: Request) => {
   return {
     "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
   };
 };
 
@@ -22,6 +24,12 @@ serve(async (req: Request) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Méthode non autorisée." }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -109,18 +117,20 @@ serve(async (req: Request) => {
 
     if (invitedUserId) {
       // Insérer ou ignorer si déjà admin
-      await supabaseAdmin.from("user_roles").upsert(
+      const { error: roleError } = await supabaseAdmin.from("user_roles").upsert(
         { user_id: invitedUserId, role: "admin" },
         { onConflict: "user_id,role", ignoreDuplicates: true }
       );
+      if (roleError) throw roleError;
     } else {
       // L'utilisateur existait déjà → trouver son ID via la RPC optimisée
       const { data: existingUserId } = await supabaseAdmin.rpc("get_user_id_by_email", { email_addr: email.trim().toLowerCase() });
       if (existingUserId) {
-        await supabaseAdmin.from("user_roles").upsert(
+        const { error: roleError } = await supabaseAdmin.from("user_roles").upsert(
           { user_id: existingUserId, role: "admin" },
           { onConflict: "user_id,role", ignoreDuplicates: true }
         );
+        if (roleError) throw roleError;
       }
     }
 

@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, lazy } from "react";
+import { Component, Suspense, lazy, useState, useEffect, type ErrorInfo, type ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +57,40 @@ const AuthFallback = () => (
   </div>
 );
 
+class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Erreur non récupérée dans l'application", error, info);
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <main className="w-full max-w-md space-y-4 rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+          <h1 className="text-xl font-heading font-bold">Une erreur est survenue</h1>
+          <p className="text-sm text-muted-foreground">
+            Rechargez la page pour reprendre votre navigation.
+          </p>
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            onClick={() => window.location.reload()}
+          >
+            Recharger la page
+          </button>
+        </main>
+      </div>
+    );
+  }
+}
+
 // ── ProtectedRoute - Accessible uniquement si connecté ───────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -91,6 +126,57 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
             </a>
             <a href="/auth?redirect=%2Fadmin" className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90">
               Changer de compte
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
+// ── DriverRoute - Accessible uniquement si le livreur existe ───────────────────
+const DriverRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading: authLoading } = useAuth();
+  const [isDriver, setIsDriver] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setIsDriver(false);
+      return;
+    }
+
+    let mounted = true;
+    supabase
+      .from("delivery_drivers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (mounted) setIsDriver(!error && !!data);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  if (authLoading || isDriver === null) return <AuthFallback />;
+  if (!user) return <Navigate to="/auth?redirect=%2Flivreur" replace />;
+  if (!isDriver) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="text-center space-y-4 max-w-md bg-card p-6 md:p-8 rounded-lg border border-border shadow-sm">
+          <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+            <span className="text-xl font-bold">!</span>
+          </div>
+          <h1 className="text-2xl font-heading font-bold">Accès livreur requis</h1>
+          <p className="text-muted-foreground text-sm">
+            Vous êtes connecté, mais ce compte n'est pas enregistré comme livreur.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+            <a href="/" className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+              Retour au site
             </a>
           </div>
         </div>
@@ -139,7 +225,7 @@ const RouterApp = () => (
 
       {/* Route livreur */}
       <Route path="/livreur" element={
-        <ProtectedRoute><DriverDashboard /></ProtectedRoute>
+        <DriverRoute><DriverDashboard /></DriverRoute>
       } />
 
       <Route path="*" element={<NotFound />} />
@@ -157,7 +243,9 @@ const App = () => (
           <Sonner />
 
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <RouterApp />
+            <AppErrorBoundary>
+              <RouterApp />
+            </AppErrorBoundary>
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>

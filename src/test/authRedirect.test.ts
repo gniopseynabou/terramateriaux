@@ -14,4 +14,9 @@ describe("getPostAuthRedirect", () => {
     expect(getPostAuthRedirect("/auth")).toBe("/mes-commandes");
     expect(getPostAuthRedirect("/admin")).toBe("/mes-commandes");
   });
+
+  it("rejects protocol-relative and backslash redirects", () => {
+    expect(getPostAuthRedirect("//external.example/path")).toBe("/mes-commandes");
+    expect(getPostAuthRedirect("/\\external.example/path")).toBe("/mes-commandes");
+  });
 });

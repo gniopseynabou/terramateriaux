@@ -160,30 +160,33 @@ export const useAssignDriver = () => {
       if (updateErr) throw updateErr;
 
       // Also update orders table for assigned driver name
-      await supabase
+      const { error: orderError } = await supabase
         .from("orders")
         .update({
           assigned_name: driverName,
           driver_id: driver_id,
           delivery_status: driver_id ? "AFFECTEE" : "A_PREPARER",
-        })
+        } as never)
         .eq("id", order_id);
+      if (orderError) throw orderError;
 
       // Record in delivery_history
-      await supabase.from("delivery_history").insert({
+      const { error: historyError } = await supabase.from("delivery_history").insert({
         delivery_id: activeDeliveryId,
         order_id,
         driver_id,
         status: driver_id ? "AFFECTEE" : "NON_AFFECTEE",
         comment: driver_id ? `Commande affectée à ${driverName}` : "Affectation retirée",
       });
+      if (historyError) throw historyError;
 
       // Update driver status if driver is assigned
       if (driver_id) {
-        await supabase
+        const { error: driverError } = await supabase
           .from("delivery_drivers")
           .update({ status: "EN_LIVRAISON" })
           .eq("id", driver_id);
+        if (driverError) throw driverError;
       }
 
       return updatedDelivery;
@@ -232,20 +235,30 @@ export const useUpdateDeliveryStatus = () => {
     }: UpdateDeliveryStatusPayload) => {
       let proof_url: string | null = null;
 
+      const { data: current, error: fetchErr } = await supabase
+        .from("deliveries")
+        .select("order_id, driver_id")
+        .eq("id", delivery_id)
+        .single();
+      if (fetchErr) throw fetchErr;
+
       // Handle proof upload if file provided
       if (proof_file) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Authentification requise pour envoyer une preuve.");
         const fileExt = proof_file.name.split(".").pop();
-        const filePath = `${order_id}_${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/${order_id}/${Date.now()}.${fileExt}`;
         const { error: uploadErr } = await supabase.storage
           .from("delivery-proofs")
           .upload(filePath, proof_file, { upsert: true });
 
         if (uploadErr) throw uploadErr;
 
-        const { data: urlData } = supabase.storage
+        const { data: signed, error: signedErr } = await supabase.storage
           .from("delivery-proofs")
-          .getPublicUrl(filePath);
-        proof_url = urlData.publicUrl;
+          .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+        if (signedErr) throw signedErr;
+        proof_url = signed.signedUrl;
       }
 
       const now = new Date().toISOString();
@@ -268,20 +281,14 @@ export const useUpdateDeliveryStatus = () => {
 
       const { data: updated, error: deliveryErr } = await supabase
         .from("deliveries")
-        .update(updates)
+        .update(updates as never)
         .eq("id", delivery_id)
         .select()
         .single();
       if (deliveryErr) throw deliveryErr;
 
-      // Keep orders table delivery status in sync
-      await supabase
-        .from("orders")
-        .update({ delivery_status: status })
-        .eq("id", order_id);
-
       // Audit trail
-      await supabase.from("delivery_history").insert({
+      const { error: historyError } = await supabase.from("delivery_history").insert({
         delivery_id,
         order_id,
         driver_id: driver_id || updated.driver_id,
@@ -289,6 +296,7 @@ export const useUpdateDeliveryStatus = () => {
         comment: comment || issue_reason || `Statut mis à jour : ${status}`,
         proof_url,
       });
+      if (historyError) throw historyError;
 
       // Update driver status back to DISPONIBLE if delivery is completed or failed/cancelled
       if (["LIVREE", "ECHEC", "ANNULEE"].includes(status) && updated.driver_id) {
@@ -300,10 +308,11 @@ export const useUpdateDeliveryStatus = () => {
           .in("status", ["AFFECTEE", "EN_COURS"]);
 
         if (!otherActive || otherActive.length === 0) {
-          await supabase
+          const { error: driverError } = await supabase
             .from("delivery_drivers")
             .update({ status: "DISPONIBLE" })
             .eq("id", updated.driver_id);
+          if (driverError) throw driverError;
         }
       }
 
@@ -366,12 +375,11 @@ export const useUpdateDeliveryStatusSimple = () => {
       notes,
     }: {
       deliveryId: string;
-      status: string;
+      status: DbDelivery["status"];
       notes?: string;
     }) => {
       const now = new Date().toISOString();
 
-      // Fetch current delivery to get order_id and driver_id
       const { data: current, error: fetchErr } = await supabase
         .from("deliveries")
         .select("order_id, driver_id")
@@ -380,46 +388,42 @@ export const useUpdateDeliveryStatusSimple = () => {
       if (fetchErr) throw fetchErr;
 
       const updates: Record<string, unknown> = { status, updated_at: now };
-      if (status === "EN_TRANSIT" || status === "EN_COURS") updates.started_at = now;
+      if (status === "EN_COURS") updates.started_at = now;
       if (status === "LIVREE") updates.completed_at = now;
       if (notes) updates.notes = notes;
 
       const { data: updated, error: updateErr } = await supabase
         .from("deliveries")
-        .update(updates)
+        .update(updates as never)
         .eq("id", deliveryId)
         .select()
         .single();
       if (updateErr) throw updateErr;
 
-      // Sync orders table
-      await supabase
-        .from("orders")
-        .update({ delivery_status: status })
-        .eq("id", current.order_id);
-
       // Audit trail
-      await supabase.from("delivery_history").insert({
+      const { error: historyError } = await supabase.from("delivery_history").insert({
         delivery_id: deliveryId,
         order_id: current.order_id,
         driver_id: current.driver_id,
         status,
         comment: notes || `Statut mis à jour par le livreur : ${status}`,
       });
+      if (historyError) throw historyError;
 
       // Free driver if finished
-      if (["LIVREE", "ECHOUEE", "RETOURNEE"].includes(status) && current.driver_id) {
+      if (["LIVREE", "ECHEC", "REPORTEE", "ANNULEE"].includes(status) && current.driver_id) {
         const { data: otherActive } = await supabase
           .from("deliveries")
           .select("id")
           .eq("driver_id", current.driver_id)
-          .in("status", ["AFFECTEE", "ACCEPTEE", "EN_TRANSIT", "EN_COURS"]);
+          .in("status", ["AFFECTEE", "EN_COURS"]);
 
         if (!otherActive || otherActive.length === 0) {
-          await supabase
+          const { error: driverError } = await supabase
             .from("delivery_drivers")
             .update({ status: "DISPONIBLE" })
             .eq("id", current.driver_id);
+          if (driverError) throw driverError;
         }
       }
 

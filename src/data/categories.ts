@@ -1,10 +1,11 @@
 import { Building2, Zap, Droplets, Wrench, Wheat, UtensilsCrossed, Shirt, Sparkles, Tv } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export interface Category {
   id: string;
   name: string;
   slug: string;
-  icon: any;
+  icon: LucideIcon;
   description: string;
   image: string;
 }

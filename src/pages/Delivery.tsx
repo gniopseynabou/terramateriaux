@@ -46,7 +46,7 @@ const Delivery = () => {
     }
     const zone = zones.find((z) => z.region === selectedRegion && z.city === selectedCity);
     setDeliveryFee(zone?.fee ?? 0);
-  }, [selectedRegion, selectedCity, deliveryMethod, zones, isFreeDeliveryEligible]);
+  }, [selectedRegion, selectedCity, deliveryMethod, zones, isFreeDeliveryEligible, setDeliveryFee]);
 
   const handleRegionChange = (region: string) => {
     setSelectedRegion(region);

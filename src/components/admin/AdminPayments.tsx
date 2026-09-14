@@ -10,6 +10,7 @@ import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { useToast } from "@/hooks/use-toast";
 import { pushNotification } from "@/hooks/useNotifications";
 import { ORDER_STATUS_NOTIFICATIONS } from "@/lib/orderStatus";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 import { CheckCircle2, XCircle, RefreshCw, ExternalLink, CreditCard } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -41,6 +42,16 @@ const statusLabel = (s: string) => ({
   rejected: "Refusé",
   paid: "Payé",
 }[s] ?? s);
+
+const getPaymentProofExtension = (file: File): string | null => {
+  if (file.size > 5 * 1024 * 1024) return null;
+  return ({
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "application/pdf": "pdf",
+  } as Record<string, string>)[file.type] ?? null;
+};
 
 const AdminPayments = () => {
   const qc = useQueryClient();
@@ -100,8 +111,9 @@ const AdminPayments = () => {
     mutationFn: async ({ orderId, file }: { orderId: string; file: File | null }) => {
       let proofUrl: string | null = null;
       if (file) {
-        const extension = file.name.split(".").pop() || "jpg";
-        const path = `admin/${orderId}/${Date.now()}.${extension}`;
+        const extension = getPaymentProofExtension(file);
+        if (!extension) throw new Error("Preuve invalide : image/PDF de 5 Mo maximum attendu.");
+        const path = `admin/${orderId}/${Date.now()}_${crypto.randomUUID()}.${extension}`;
         const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(path, file);
         if (uploadError) throw uploadError;
         const { data: signed, error: signedError } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60 * 60 * 24 * 365);
@@ -116,7 +128,7 @@ const AdminPayments = () => {
       qc.invalidateQueries({ queryKey: ["admin-payments"] });
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
     },
-    onError: (error: Error) => toast({ title: "Erreur", description: error.message, variant: "destructive" }),
+    onError: (error: unknown) => toast({ title: "Erreur", description: getFriendlyErrorMessage(error), variant: "destructive" }),
   });
 
   const updateStatus = useMutation({
@@ -137,15 +149,17 @@ const AdminPayments = () => {
         orderPatch.status = "confirmée";
         orderPatch.order_status = "PAIEMENT_RECU";
       }
-      await supabase.from("orders").update(orderPatch).eq("id", order_id);
+      const { error: orderError } = await supabase.from("orders").update(orderPatch as never).eq("id", order_id);
+      if (orderError) throw orderError;
 
       if (status === "verified" || status === "paid") {
-        await supabase.from("order_history").insert({
+        const { error: historyError } = await supabase.from("order_history").insert({
           order_id,
           status: "PAIEMENT_RECU",
           comment: comment ?? "Paiement vérifié par un administrateur.",
           created_by: user?.id ?? null,
         });
+        if (historyError) throw historyError;
         await pushNotification({
           user_id: customer_user_id ?? null,
           order_id,
@@ -157,13 +171,15 @@ const AdminPayments = () => {
           .from("orders")
           .update({ order_status: "PREPARATION" })
           .eq("id", order_id);
-        if (!prepError) {
-          await supabase.from("order_history").insert({
+        if (prepError) throw prepError;
+        {
+          const { error: preparationHistoryError } = await supabase.from("order_history").insert({
             order_id,
             status: "PREPARATION",
             comment: "Passage automatique en préparation après vérification du paiement.",
             created_by: user?.id ?? null,
           });
+          if (preparationHistoryError) throw preparationHistoryError;
           await pushNotification({
             user_id: customer_user_id ?? null,
             order_id,
@@ -178,7 +194,7 @@ const AdminPayments = () => {
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
       qc.invalidateQueries({ queryKey: ["notifications"] });
     },
-    onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+    onError: (e: unknown) => toast({ title: "Erreur", description: getFriendlyErrorMessage(e), variant: "destructive" }),
   });
 
   const requestNewProof = useMutation({
@@ -291,7 +307,15 @@ const AdminPayments = () => {
                 type="file"
                 accept="image/*,application/pdf"
                 className="sr-only"
-                onChange={(event) => setCashProofs({ ...cashProofs, [p.order_id]: event.target.files?.[0] ?? null })}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (file && !getPaymentProofExtension(file)) {
+                    toast({ title: "Preuve invalide", description: "Image/PDF de 5 Mo maximum attendu.", variant: "destructive" });
+                    event.currentTarget.value = "";
+                    return;
+                  }
+                  setCashProofs({ ...cashProofs, [p.order_id]: file });
+                }}
               />
               <Button size="sm" variant="outline" onClick={() => document.getElementById(`cash-proof-${p.order_id}`)?.click()}>
                 <ExternalLink className="h-4 w-4 mr-1" /> {cashProofs[p.order_id] ? "Preuve sélectionnée" : "Ajouter une preuve (facultatif)"}

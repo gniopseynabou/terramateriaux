@@ -258,3 +258,86 @@ CREATE POLICY "Authenticated users upload delivery proofs"
         bucket_id = 'delivery-proofs'
         AND (auth.role() = 'authenticated')
     );
+
+-- Pre-production hardening: restrict driver data and delivery proofs.
+DROP POLICY IF EXISTS "Public read active drivers" ON public.delivery_drivers;
+CREATE POLICY "Drivers read own profile" ON public.delivery_drivers
+    FOR SELECT TO authenticated
+    USING (user_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
+
+UPDATE storage.buckets SET public = false WHERE id = 'delivery-proofs';
+DROP POLICY IF EXISTS "Public delivery proofs access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users upload delivery proofs" ON storage.objects;
+
+CREATE POLICY "Authenticated users upload delivery proofs"
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (
+        bucket_id = 'delivery-proofs'
+        AND (
+            public.has_role(auth.uid(), 'admin')
+            OR (
+                (storage.foldername(name))[1] = auth.uid()::text
+                AND EXISTS (
+                    SELECT 1 FROM public.deliveries d
+                    JOIN public.delivery_drivers dd ON dd.id = d.driver_id
+                    WHERE dd.user_id = auth.uid()
+                      AND d.order_id::text = (storage.foldername(name))[2]
+                )
+            )
+        )
+    );
+
+CREATE POLICY "Authorized users read delivery proofs"
+    ON storage.objects FOR SELECT TO authenticated
+    USING (
+        bucket_id = 'delivery-proofs'
+        AND (
+            public.has_role(auth.uid(), 'admin')
+            OR EXISTS (
+                SELECT 1 FROM public.deliveries d
+                JOIN public.orders o ON o.id = d.order_id
+                LEFT JOIN public.delivery_drivers dd ON dd.id = d.driver_id
+                WHERE (dd.user_id = auth.uid() OR o.user_id = auth.uid())
+                  AND d.proof_url LIKE '%' || name
+            )
+        )
+    );
+
+CREATE OR REPLACE FUNCTION public.validate_delivery_status_transition()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+    IF OLD.status = NEW.status THEN RETURN NEW; END IF;
+    IF NOT (
+        (OLD.status = 'A_PREPARER' AND NEW.status IN ('PRETE', 'AFFECTEE', 'ANNULEE')) OR
+        (OLD.status = 'PRETE' AND NEW.status IN ('AFFECTEE', 'ANNULEE')) OR
+        (OLD.status = 'AFFECTEE' AND NEW.status IN ('EN_COURS', 'ANNULEE')) OR
+        (OLD.status = 'EN_COURS' AND NEW.status IN ('LIVREE', 'ECHEC', 'CLIENT_ABSENT', 'ADRESSE_INCORRECTE', 'REPORTEE', 'ANNULEE')) OR
+        (OLD.status = 'REPORTEE' AND NEW.status IN ('AFFECTEE', 'EN_COURS', 'ANNULEE'))
+    ) THEN
+        RAISE EXCEPTION 'Transition de livraison interdite: % -> %', OLD.status, NEW.status;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_delivery_status_transition ON public.deliveries;
+CREATE TRIGGER trg_validate_delivery_status_transition
+    BEFORE UPDATE OF status ON public.deliveries
+    FOR EACH ROW EXECUTE FUNCTION public.validate_delivery_status_transition();
+
+CREATE OR REPLACE FUNCTION public.sync_order_delivery_status()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+    IF OLD.status IS DISTINCT FROM NEW.status THEN
+        UPDATE public.orders
+        SET delivery_status = NEW.status, updated_at = now()
+        WHERE id = NEW.order_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_order_delivery_status ON public.deliveries;
+CREATE TRIGGER trg_sync_order_delivery_status
+    AFTER UPDATE OF status ON public.deliveries
+    FOR EACH ROW EXECUTE FUNCTION public.sync_order_delivery_status();

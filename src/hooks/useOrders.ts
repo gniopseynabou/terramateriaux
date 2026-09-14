@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Json, Tables } from "@/integrations/supabase/types";
 import { useEffect } from "react";
 import { ORDER_STATUS_NOTIFICATIONS, canTransition, type OrderStatus } from "@/lib/orderStatus";
 import { pushNotification } from "@/hooks/useNotifications";
@@ -59,24 +59,10 @@ export const useCreateOrder = () => {
   return useMutation({
     mutationFn: async (input: CreateOrderInput) => {
       const { data, error } = await supabase.rpc("create_order_v2", {
-        payload: input as any
+        payload: input as unknown as Json
       });
       if (error) throw error;
-      const order = data as unknown as DbOrder;
-
-      // Auto-create initial delivery record for this order
-      if (order && order.id) {
-        try {
-          await supabase.from("deliveries").insert({
-            order_id: order.id,
-            status: "A_PREPARER",
-          });
-        } catch {
-          // ignore duplicate if trigger or function created it
-        }
-      }
-
-      return order;
+      return data as unknown as DbOrder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -168,16 +154,17 @@ export const useUpdateOrder = () => {
       if (input.assigned_name !== undefined) patch.assigned_name = input.assigned_name;
       patch.updated_at = new Date().toISOString();
 
-      const { error } = await supabase.from("orders").update(patch).eq("id", input.order_id);
+      const { error } = await supabase.from("orders").update(patch as never).eq("id", input.order_id);
       if (error) throw error;
 
       if (input.order_status || input.comment) {
-        await supabase.from("order_history").insert({
+        const { error: historyError } = await supabase.from("order_history").insert({
           order_id: input.order_id,
           status: input.order_status ?? "EN_ATTENTE_PAIEMENT",
           comment: input.comment ?? null,
           created_by: user?.id ?? null,
         });
+        if (historyError) throw historyError;
       }
 
       if (input.order_status) {
@@ -189,12 +176,13 @@ export const useUpdateOrder = () => {
       }
 
       if (input.assigned_name) {
-        await supabase.from("staff_assignments").insert({
+        const { error: assignmentError } = await supabase.from("staff_assignments").insert({
           order_id: input.order_id,
           staff_name: input.assigned_name,
           assigned_by: user?.id ?? null,
           note: input.comment ?? null,
         });
+        if (assignmentError) throw assignmentError;
       }
     },
     onSuccess: () => {

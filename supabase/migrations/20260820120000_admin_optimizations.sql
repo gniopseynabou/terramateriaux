@@ -41,7 +41,7 @@ BEGIN
     _webhook_secret := current_setting('app.settings.service_role_key', true);
   END IF;
 
-  IF OLD.status IS DISTINCT FROM NEW.status THEN
+  IF OLD.order_status IS DISTINCT FROM NEW.order_status THEN
     PERFORM net.http_post(
       url     := 'https://' || _project_ref || '.supabase.co/functions/v1/send-order-email',
       headers := jsonb_build_object(

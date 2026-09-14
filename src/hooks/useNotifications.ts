@@ -69,11 +69,12 @@ export const pushNotification = async (input: {
   message: string;
   type?: string;
 }) => {
-  await supabase.from("notifications").insert({
+  const { error } = await supabase.from("notifications").insert({
     user_id: input.user_id,
     order_id: input.order_id,
     title: input.title,
     message: input.message,
     type: input.type ?? "order",
   });
+  if (error) throw error;
 };

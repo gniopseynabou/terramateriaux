@@ -248,7 +248,7 @@ const AdminPromotions = () => {
               const statusCfg = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.DRAFT;
               const targetLabel =
                 p.target_type === "ALL_PRODUCTS" ? "Tous les produits" :
-                p.target_type === "CATEGORY" ? `Catégorie : ${(p as any).categories?.name || "—"}` :
+                p.target_type === "CATEGORY" ? `Catégorie : ${p.categories?.name || "—"}` :
                 `${p.promotion_products?.length || 0} produit(s)`;
               const discountLabel = p.discount_type === "PERCENTAGE"
                 ? `-${p.discount_value}%`
@@ -385,7 +385,7 @@ const AdminPromotions = () => {
               <Label>Cible de la promotion *</Label>
               <Select
                 value={form.target_type}
-                onValueChange={(v) => setForm({ ...form, target_type: v as any, category_id: "", selected_products: [] })}
+                onValueChange={(v) => setForm({ ...form, target_type: v as PromotionForm["target_type"], category_id: "", selected_products: [] })}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -483,7 +483,7 @@ const AdminPromotions = () => {
               <Label>Statut initial</Label>
               <Select
                 value={form.status}
-                onValueChange={(v) => setForm({ ...form, status: v as any })}
+                onValueChange={(v) => setForm({ ...form, status: v as PromotionForm["status"] })}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>

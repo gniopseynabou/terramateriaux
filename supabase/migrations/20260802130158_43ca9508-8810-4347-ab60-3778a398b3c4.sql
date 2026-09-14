@@ -3,11 +3,18 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS quarter text,
   ADD COLUMN IF NOT EXISTS delivery_notes text;
 
-CREATE OR REPLACE FUNCTION public.declare_payment(_order_id uuid, _payment_method text, _amount numeric, _reference text DEFAULT NULL::text, _proof_url text DEFAULT NULL::text, _comment text DEFAULT NULL::text)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
+CREATE OR REPLACE FUNCTION public.declare_payment(
+  _order_id uuid,
+  _payment_method text,
+  _amount numeric,
+  _reference text DEFAULT NULL::text,
+  _proof_url text DEFAULT NULL::text,
+  _comment text DEFAULT NULL::text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
 AS $function$
 DECLARE
   o public.orders%ROWTYPE;
@@ -15,6 +22,7 @@ DECLARE
   _expected numeric;
   _ref text := NULLIF(btrim(COALESCE(_reference, '')), '');
   _cmt text := NULLIF(btrim(COALESCE(_comment, '')), '');
+  _proof text := NULLIF(btrim(COALESCE(_proof_url, '')), '');
 BEGIN
   SELECT * INTO o FROM public.orders WHERE id = _order_id;
   IF NOT FOUND THEN
@@ -29,12 +37,14 @@ BEGIN
     RAISE EXCEPTION 'Le paiement ne peut plus être déclaré pour cette commande';
   END IF;
 
-  -- Moyen de paiement : doit exister et être actif
+  IF _proof IS NULL THEN
+    RAISE EXCEPTION 'La preuve de paiement est obligatoire';
+  END IF;
+
   IF NOT EXISTS (SELECT 1 FROM public.payment_settings ps WHERE ps.method_key = _payment_method AND ps.is_active) THEN
     RAISE EXCEPTION 'Moyen de paiement invalide ou indisponible';
   END IF;
 
-  -- Montant
   IF _amount IS NULL OR _amount <= 0 THEN
     RAISE EXCEPTION 'Le montant payé doit être supérieur à 0';
   END IF;
@@ -44,7 +54,6 @@ BEGIN
     RAISE EXCEPTION 'Le montant déclaré (%) dépasse largement le total de la commande (%)', _amount, _expected;
   END IF;
 
-  -- Référence optionnelle, mais bornée
   IF _ref IS NOT NULL AND length(_ref) > 100 THEN
     RAISE EXCEPTION 'La référence de transaction ne doit pas dépasser 100 caractères';
   END IF;
@@ -53,7 +62,6 @@ BEGIN
     RAISE EXCEPTION 'Le commentaire ne doit pas dépasser 500 caractères';
   END IF;
 
-  -- Pas de double déclaration en attente
   IF EXISTS (
     SELECT 1 FROM public.payments p
     WHERE p.order_id = _order_id
@@ -63,8 +71,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.payments (order_id, user_id, payment_method, amount, currency, reference, proof_url, status)
-  VALUES (_order_id, o.user_id, _payment_method, _amount, 'FCFA', _ref,
-          NULLIF(_proof_url, ''), CASE WHEN COALESCE(_proof_url, '') = '' THEN 'pending'::payment_status ELSE 'proof_uploaded'::payment_status END)
+  VALUES (_order_id, o.user_id, _payment_method, _amount, 'FCFA', _ref, _proof, 'proof_uploaded'::payment_status)
   RETURNING id INTO _new_payment_id;
 
   UPDATE public.orders
@@ -88,3 +95,27 @@ BEGIN
   RETURN _new_payment_id;
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.declare_payment(uuid, text, numeric, text, text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.declare_payment(uuid, text, numeric, text, text, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.declare_payment(uuid, text, numeric, text, text, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.require_payment_proof_before_validation()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NEW.status IN ('verified', 'paid')
+     AND NULLIF(btrim(COALESCE(NEW.proof_url, '')), '') IS NULL THEN
+    RAISE EXCEPTION 'Impossible de valider un paiement sans preuve';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_require_payment_proof_before_validation ON public.payments;
+CREATE TRIGGER trg_require_payment_proof_before_validation
+BEFORE INSERT OR UPDATE OF status, proof_url ON public.payments
+FOR EACH ROW
+EXECUTE FUNCTION public.require_payment_proof_before_validation();

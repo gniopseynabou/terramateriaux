@@ -15,6 +15,7 @@ import { useCreateOrder } from "@/hooks/useOrders";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { useActivePromotions } from "@/hooks/usePromotions";
 import { getBestPromotionForProduct } from "@/lib/promotions";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 
 const checkoutSchema = z.object({
   nom: z.string().trim().min(2, "Nom trop court").max(100),
@@ -113,7 +114,7 @@ const Checkout = () => {
       clearCart();
       navigate(`/confirmation/${order.order_number}`);
     } catch (e) {
-      toast.error("Enregistrement impossible", { description: (e as Error).message });
+      toast.error("Enregistrement impossible", { description: getFriendlyErrorMessage(e) });
     }
   };
 

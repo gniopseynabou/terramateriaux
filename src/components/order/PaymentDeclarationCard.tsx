@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 
 interface Props {
   orderId: string;
@@ -114,7 +115,7 @@ const PaymentDeclarationCard = ({
       toast.success("Paiement enregistré. Merci !");
     } catch (e) {
       console.error(e);
-      toast.error("Enregistrement impossible", { description: (e as Error).message });
+      toast.error("Enregistrement impossible", { description: getFriendlyErrorMessage(e) });
     } finally {
       setSaving(false);
     }

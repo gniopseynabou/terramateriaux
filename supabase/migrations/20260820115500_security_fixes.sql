@@ -15,11 +15,57 @@ DECLARE
   _order_id uuid;
   _item jsonb;
   _res json;
+  _order_subtotal numeric := 0;
+  _delivery_fee numeric := COALESCE((payload->>'delivery_fee')::numeric, 0);
+  _actual_price numeric;
+  _product_name text;
+  _qty int;
+  _item_subtotal numeric;
 BEGIN
-  -- Generate secure order number: TMI-YYYY-XXXXXX
+  IF _user_id IS NULL THEN
+    RAISE EXCEPTION 'Authentification requise';
+  END IF;
+
+  IF jsonb_array_length(payload->'items') = 0 THEN
+    RAISE EXCEPTION 'Le panier est vide';
+  END IF;
+
+  FOR _item IN SELECT * FROM jsonb_array_elements(payload->'items')
+  LOOP
+    _qty := (_item->>'quantity')::int;
+    IF _qty IS NULL OR _qty <= 0 OR _qty > 100000 THEN
+      RAISE EXCEPTION 'Quantité invalide';
+    END IF;
+    SELECT price_fcfa, name INTO _actual_price, _product_name FROM public.products WHERE id = (_item->>'product_id')::uuid;
+    IF _actual_price IS NULL THEN
+      RAISE EXCEPTION 'Produit introuvable';
+    END IF;
+    _order_subtotal := _order_subtotal + (_actual_price * _qty);
+  END LOOP;
+
+  IF _delivery_fee < 0 THEN
+    RAISE EXCEPTION 'Frais de livraison invalides';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.payment_settings
+    WHERE method_key = payload->>'payment_method' AND is_active
+  ) AND payload->>'payment_method' <> 'cash_on_delivery' THEN
+    RAISE EXCEPTION 'Moyen de paiement invalide ou indisponible';
+  END IF;
+
+  IF payload->>'delivery_method' = 'livraison'
+     AND to_regclass('public.delivery_zones') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM public.delivery_zones
+       WHERE region = payload->>'delivery_region'
+         AND city = payload->>'delivery_city'
+     ) THEN
+    RAISE EXCEPTION 'Zone de livraison invalide';
+  END IF;
+
   _order_number := 'TMI-' || to_char(now(), 'YYYY') || '-' || upper(substr(md5(random()::text), 1, 6));
 
-  -- Insert order
   INSERT INTO public.orders (
     order_number, user_id, customer_name, customer_phone, customer_email, customer_comment,
     delivery_method, delivery_address, delivery_region, delivery_city, delivery_quarter,
@@ -36,32 +82,42 @@ BEGIN
     payload->>'delivery_region',
     payload->>'delivery_city',
     payload->>'delivery_quarter',
-    (payload->>'delivery_fee')::numeric,
-    (payload->>'subtotal')::numeric,
-    (payload->>'total')::numeric,
-    (payload->>'total')::numeric,
+    _delivery_fee,
+    _order_subtotal,
+    _order_subtotal + _delivery_fee,
+    _order_subtotal + _delivery_fee,
     payload->>'payment_method',
     'en cours',
     'EN_ATTENTE_PAIEMENT'
   ) RETURNING id INTO _order_id;
 
-  -- Insert items
+  IF to_regclass('public.deliveries') IS NOT NULL THEN
+    INSERT INTO public.deliveries (order_id, status)
+    VALUES (_order_id, 'A_PREPARER');
+  END IF;
+
   FOR _item IN SELECT * FROM jsonb_array_elements(payload->'items')
   LOOP
+    _qty := (_item->>'quantity')::int;
+    IF _qty IS NULL OR _qty <= 0 OR _qty > 100000 THEN
+      RAISE EXCEPTION 'Quantité invalide';
+    END IF;
+    SELECT price_fcfa, name INTO _actual_price, _product_name FROM public.products WHERE id = (_item->>'product_id')::uuid;
+    _item_subtotal := _actual_price * _qty;
+
     INSERT INTO public.order_items (
       order_id, product_id, product_name, quantity, unit_price, is_gros, subtotal
     ) VALUES (
       _order_id,
       (_item->>'product_id')::uuid,
-      _item->>'product_name',
-      (_item->>'quantity')::int,
-      (_item->>'unit_price')::numeric,
-      (_item->>'is_gros')::boolean,
-      (_item->>'subtotal')::numeric
+      _product_name,
+      _qty,
+      _actual_price,
+      COALESCE((_item->>'is_gros')::boolean, false),
+      _item_subtotal
     );
   END LOOP;
 
-  -- Insert history
   INSERT INTO public.order_history (order_id, status, comment, created_by)
   VALUES (
     _order_id,
@@ -70,7 +126,6 @@ BEGIN
     _user_id
   );
 
-  -- Insert notification
   INSERT INTO public.notifications (user_id, order_id, title, message, type)
   VALUES (
     _user_id,
@@ -80,7 +135,6 @@ BEGIN
     'order'
   );
 
-  -- Return order details to frontend
   SELECT json_build_object(
     'id', _order_id,
     'order_number', _order_number,
@@ -90,7 +144,8 @@ BEGIN
   RETURN _res;
 END;
 $$;
-GRANT EXECUTE ON FUNCTION public.create_order_v2(jsonb) TO anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_order_v2(jsonb) FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_order_v2(jsonb) TO authenticated;
 
 -- 2. Create RPC to fetch order details securely for confirmation page
 CREATE OR REPLACE FUNCTION public.get_order_details_by_number(_order_number text)
@@ -131,12 +186,40 @@ BEGIN
   )
   INTO res
   FROM public.orders o
-  WHERE o.order_number = _order_number AND (o.user_id IS NULL OR o.user_id = auth.uid());
+  WHERE o.order_number = _order_number AND o.user_id = auth.uid();
   
   RETURN res;
 END;
 $$;
-GRANT EXECUTE ON FUNCTION public.get_order_details_by_number(text) TO anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_order_details_by_number(text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_order_details_by_number(text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.validate_payment_proof_owner()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.proof_url IS NULL OR btrim(NEW.proof_url) = '' THEN
+    RETURN NEW;
+  END IF;
+  IF NOT public.has_role(auth.uid(), 'admin')
+     AND NEW.user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Preuve de paiement non autorisée';
+  END IF;
+  IF NOT public.has_role(auth.uid(), 'admin')
+     AND position('/' || auth.uid()::text || '/' || NEW.order_id::text || '/' IN NEW.proof_url) = 0 THEN
+    RAISE EXCEPTION 'Chemin de preuve de paiement invalide';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_payment_proof_owner ON public.payments;
+CREATE TRIGGER trg_validate_payment_proof_owner
+  BEFORE INSERT OR UPDATE OF proof_url, user_id, order_id ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.validate_payment_proof_owner();
 
 -- 3. Fix RLS on orders
 DROP POLICY IF EXISTS "Anyone can create orders" ON public.orders;

@@ -110,7 +110,11 @@ export const useUpdatePromotion = () => {
 
       if (payload.target_type === "SPECIFIC_PRODUCTS" && product_ids !== undefined) {
         // Delete previous associations
-        await supabase.from("promotion_products").delete().eq("promotion_id", id);
+        const { error: deleteError } = await supabase
+          .from("promotion_products")
+          .delete()
+          .eq("promotion_id", id);
+        if (deleteError) throw deleteError;
 
         if (product_ids.length > 0) {
           const rows = product_ids.map((pid) => ({

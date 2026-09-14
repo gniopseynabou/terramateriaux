@@ -48,8 +48,8 @@ async function fetchRole(user: User): Promise<string | null> {
 
     if (roleRow) return "admin";
 
-    // 3. User / App metadata check
-    if (user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin") {
+    // 3. App metadata is server-controlled; user metadata is not authoritative.
+    if (user.app_metadata?.role === "admin") {
       return "admin";
     }
 

@@ -1,7 +1,12 @@
 const INVALID_REDIRECTS = new Set(["/auth", "/reset-password", "/admin"]);
 
 export const getPostAuthRedirect = (redirectPath?: string | null): string => {
-  if (!redirectPath || !redirectPath.startsWith("/")) {
+  if (
+    !redirectPath ||
+    !redirectPath.startsWith("/") ||
+    redirectPath.startsWith("//") ||
+    redirectPath.includes("\\")
+  ) {
     return "/mes-commandes";
   }
 

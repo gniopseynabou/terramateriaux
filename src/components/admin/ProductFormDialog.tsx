@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { DbCategory } from "@/hooks/useCategories";
+import { getFriendlyErrorMessage } from "@/lib/errorUtils";
 
 type DbProduct = Tables<"products">;
 
@@ -115,8 +116,9 @@ const ProductFormDialog = ({ open, onOpenChange, product, categories, onSubmit, 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Veuillez sélectionner un fichier image valide (JPG, PNG, WebP, etc.).");
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowedTypes.has(file.type)) {
+      toast.error("Formats acceptés : JPG, PNG ou WebP.");
       return;
     }
 
@@ -127,35 +129,26 @@ const ProductFormDialog = ({ open, onOpenChange, product, categories, onSubmit, 
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      const dataUrlPromise = new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      const localDataUrl = await dataUrlPromise;
-
-      const ext = file.name.split(".").pop() || "jpg";
-      const fileName = `products/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-
-      let uploadedUrl = localDataUrl;
+      const extensionByType: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+      };
+      const extension = extensionByType[file.type];
+      const fileName = `products/${Date.now()}_${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadErr } = await supabase.storage
-        .from("payment-proofs")
+        .from("product-images")
         .upload(fileName, file, { upsert: true });
 
-      if (!uploadErr) {
-        const { data: signed } = await supabase.storage
-          .from("payment-proofs")
-          .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 10);
-        if (signed?.signedUrl) {
-          uploadedUrl = signed.signedUrl;
-        }
-      }
+      if (uploadErr) throw uploadErr;
+      const { data: publicUrl } = supabase.storage.from("product-images").getPublicUrl(fileName);
+      if (!publicUrl.publicUrl) throw new Error("URL image indisponible");
 
-      setForm((f) => ({ ...f, image_url: uploadedUrl }));
+      setForm((f) => ({ ...f, image_url: publicUrl.publicUrl }));
       toast.success("Photo ajoutée avec succès !");
-    } catch (err: any) {
-      toast.error("Erreur lors de l'ajout de l'image : " + (err.message || "Erreur inconnue"));
+    } catch (err: unknown) {
+      toast.error("Erreur lors de l'ajout de l'image", { description: getFriendlyErrorMessage(err) });
     } finally {
       setUploading(false);
     }

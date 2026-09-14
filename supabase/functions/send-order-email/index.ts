@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FROM_EMAIL = "Terra Matériaux International <fickou.reseau03@gmail.com>";
+const FROM_EMAIL = "Terra Matériaux International <contact@terra-materiaux.sn>";
 const BRAND_COLOR = "#C8952A";
 const BRAND_DARK = "#1A1A2E";
+
+const escapeHtml = (value: unknown): string => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
 
 // ─── STATUS CONFIGURATION ────────────────────────────────────────────────────
 const statusConfig: Record<string, { subject: string; emoji: string; title: string; message: string; badge: string }> = {
@@ -60,7 +67,7 @@ function buildEmailHtml(
     ? `
     <div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:20px 0;">
       <p style="margin:0 0 8px;font-weight:600;color:${BRAND_DARK};font-size:14px;">Récapitulatif de votre commande :</p>
-      ${order.items.map(item => `<p style="margin:4px 0;color:#555;font-size:14px;">• ${item}</p>`).join("")}
+      ${order.items.map(item => `<p style="margin:4px 0;color:#555;font-size:14px;">• ${escapeHtml(item)}</p>`).join("")}
     </div>`
     : "";
 
@@ -69,7 +76,7 @@ function buildEmailHtml(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${config.subject}</title>
+  <title>${escapeHtml(config.subject)}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
@@ -89,7 +96,7 @@ function buildEmailHtml(
           <tr>
             <td align="center" style="padding:28px 40px 0;">
               <span style="display:inline-block;background:${config.badge};color:#fff;border-radius:50px;padding:8px 24px;font-size:14px;font-weight:600;">
-                ${config.emoji} ${config.title}
+                ${escapeHtml(config.emoji)} ${escapeHtml(config.title)}
               </span>
             </td>
           </tr>
@@ -97,15 +104,15 @@ function buildEmailHtml(
           <!-- BODY -->
           <tr>
             <td style="padding:24px 40px;">
-              <p style="margin:0 0 16px;color:${BRAND_DARK};font-size:20px;font-weight:700;">Bonjour ${order.customer_name},</p>
-              <p style="margin:0 0 20px;color:#555;font-size:15px;line-height:1.7;">${config.message}</p>
+              <p style="margin:0 0 16px;color:${BRAND_DARK};font-size:20px;font-weight:700;">Bonjour ${escapeHtml(order.customer_name)},</p>
+              <p style="margin:0 0 20px;color:#555;font-size:15px;line-height:1.7;">${escapeHtml(config.message)}</p>
               
               <!-- ORDER INFO -->
               <div style="border:1px solid #e8e8e8;border-radius:8px;padding:20px;margin:20px 0;">
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="color:#888;font-size:13px;padding-bottom:8px;">Numéro de commande</td>
-                    <td align="right" style="color:${BRAND_DARK};font-weight:700;font-size:15px;padding-bottom:8px;">#${order.order_number}</td>
+                    <td align="right" style="color:${BRAND_DARK};font-weight:700;font-size:15px;padding-bottom:8px;">#${escapeHtml(order.order_number)}</td>
                   </tr>
                   <tr>
                     <td style="color:#888;font-size:13px;border-top:1px solid #f0f0f0;padding-top:8px;">Montant total</td>
@@ -150,6 +157,8 @@ const getCorsHeaders = (req: Request) => {
   return {
     "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
   };
 };
 
@@ -159,6 +168,12 @@ serve(async (req: Request) => {
 
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Méthode non autorisée." }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -178,13 +193,14 @@ serve(async (req: Request) => {
     const { record, old_record } = body;
 
     // Only send email if the status actually changed
-    if (!record || !old_record || record.status === old_record.status) {
+    if (!record || !old_record || record.order_status === old_record.order_status) {
       return new Response(JSON.stringify({ message: "No status change, skipping." }), { status: 200 });
     }
 
-    const config = statusConfig[record.status];
+    const orderStatusKey = record.order_status ? record.order_status.toLowerCase() : "";
+    const config = statusConfig[orderStatusKey];
     if (!config) {
-      return new Response(JSON.stringify({ message: `Unknown status: ${record.status}` }), { status: 200 });
+      return new Response(JSON.stringify({ message: `Unknown status: ${record.order_status}` }), { status: 200 });
     }
 
     // Get customer email from the profiles or orders table
@@ -225,7 +241,8 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    console.error("send-order-email error:", err);
+    return new Response(JSON.stringify({ error: "Erreur serveur interne." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
