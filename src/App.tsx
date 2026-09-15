@@ -9,6 +9,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { getPostAuthRedirect } from "@/lib/authRedirect";
+import { Sentry } from "@/lib/sentry";
 import Index from "./pages/Index";
 
 // ── Chargement paresseux ──────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Erreur non récupérée dans l'application", error, info);
+    Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
   }
 
   render() {

@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id: string) {
           if (!id.includes("node_modules")) return;
+          if (id.includes("@sentry")) return "vendor-sentry";
           if (id.includes("@supabase")) return "vendor-supabase";
           if (id.includes("@radix-ui")) return "vendor-radix";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
