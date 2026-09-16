@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://www.terra-materiaux.com/sitemap.xml
+Sitemap: https://www.terra-materriaux.com/sitemap.xml
