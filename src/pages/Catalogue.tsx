@@ -8,6 +8,7 @@ import Layout from "@/components/Layout";
 import ProductCard from "@/components/ProductCard";
 import { useCategories } from "@/hooks/useCategories";
 import { useProducts } from "@/hooks/useProducts";
+import { useSeo } from "@/hooks/useSeo";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Catalogue = () => {
@@ -21,6 +22,21 @@ const Catalogue = () => {
   const { data: products = [], isLoading } = useProducts(categorySlug);
 
   const currentCategory = categories.find((c) => c.slug === categorySlug);
+
+  // SEO dynamique selon la catégorie affichée
+  const pageTitle = currentCategory
+    ? `${currentCategory.name} — Matériaux BTP & Agriculture au Sénégal | TMI`
+    : "Catalogue complet — Matériaux BTP, Agriculture, Électricité | TMI Sénégal";
+
+  const pageDescription = currentCategory
+    ? `Achetez ${currentCategory.name.toLowerCase()} en gros ou au détail au Sénégal, prix FCFA transparents, livraison rapide. Catalogue TMI.`
+    : "Parcourez le catalogue TMI : matériaux de construction, matériel agricole, électricité, textile. Prix en gros et détail, livraison partout au Sénégal.";
+
+  const canonicalUrl = currentCategory
+    ? `https://terra-materriaux.com/catalogue/${currentCategory.slug}`
+    : "https://terra-materriaux.com/catalogue";
+
+  useSeo({ title: pageTitle, description: pageDescription, canonical: canonicalUrl });
 
   const filtered = useMemo(() => {
     let result = [...products];
@@ -45,8 +61,13 @@ const Catalogue = () => {
     <Layout>
       <div className="container mx-auto px-4 py-6 md:py-10">
         <h1 className="text-2xl md:text-3xl font-heading font-bold mb-2">
-          {currentCategory ? currentCategory.name : "Tous les produits"}
+          {currentCategory ? currentCategory.name : "Catalogue de matériaux BTP, Agriculture et Électricité au Sénégal"}
         </h1>
+        <p className="text-muted-foreground mb-6 max-w-2xl">
+          {currentCategory
+            ? `Découvrez notre sélection ${currentCategory.name.toLowerCase()}, disponible en gros ou au détail, avec livraison partout au Sénégal.`
+            : "TMI propose du matériel de construction, agricole, électrique et textile en gros ou au détail, aux meilleurs prix FCFA, livré partout au Sénégal."}
+        </p>
 
         {/* Category chips */}
         <div className="flex flex-wrap gap-2 mb-6">

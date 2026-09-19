@@ -4,6 +4,6 @@ import "./index.css";
 import { initSentry } from "./lib/sentry";
 
 // Initialiser Sentry avant le rendu React
-initSentry();
+//initSentry();
 
 createRoot(document.getElementById("root")!).render(<App />);
