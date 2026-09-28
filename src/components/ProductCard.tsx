@@ -48,38 +48,42 @@ const ProductCard = ({ product, priority = false }: { product: DbProduct; priori
         )}
       </div>
 
-      {/* Contenu — flex-col + justify-between pour aligner le bouton en bas */}
-      <div className="p-3 flex flex-col flex-1 gap-2">
+      {/* Contenu — flex-col + justify-between pour aligner le bas (prix + bouton) */}
+      <div className="p-3 flex flex-col flex-1 justify-between gap-3">
         {/* Titre */}
-        <Link to={`/produit/${product.slug}`} className="flex-1">
+        <Link
+          to={`/produit/${product.slug}`}
+          className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+        >
           <h3 className="font-heading font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug">
             {product.name}
           </h3>
         </Link>
 
-        {/* Prix — zone fixe */}
-        <div className="space-y-0.5">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-heading font-bold text-primary text-base">
-              {formatFCFA(finalPrice)}
-            </span>
-            {promoResult && (
-              <span className="text-xs text-muted-foreground line-through">
-                {formatFCFA(product.price_fcfa)}
+        {/* Bas de carte : Prix + Bouton panier alignés en bas */}
+        <div className="mt-auto space-y-2 pt-1">
+          <div className="space-y-0.5">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="font-heading font-bold text-primary text-base">
+                {formatFCFA(finalPrice)}
               </span>
-            )}
+              {promoResult && (
+                <span className="text-xs text-muted-foreground line-through">
+                  {formatFCFA(product.price_fcfa)}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              ≈ {fcfaToEuro(finalPrice)} €
+            </div>
+            <div className="text-xs text-secondary font-medium">
+              Gros : {formatFCFA(product.price_gros)} (min. {product.min_gros})
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            ≈ {fcfaToEuro(finalPrice)} €
-          </div>
-          <div className="text-xs text-secondary font-medium">
-            Gros : {formatFCFA(product.price_gros)} (min. {product.min_gros})
-          </div>
-        </div>
 
-        {/* Bouton — toujours en bas grâce au flex-col + mt-auto */}
-        <div className="mt-auto pt-1">
-          <AddToCartButton product={product} size="sm" className="w-full" />
+          <div>
+            <AddToCartButton product={product} size="sm" className="w-full" />
+          </div>
         </div>
       </div>
     </div>

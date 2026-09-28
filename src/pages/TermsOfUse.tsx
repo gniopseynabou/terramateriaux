@@ -14,7 +14,7 @@ const TermsOfUse = () => (
         <section>
           <h2 className="text-lg font-heading font-semibold mb-3">1. Présentation</h2>
           <p>
-            La plateforme <strong>www.terra-materriaux.com</strong> est éditée par Terra Matériaux
+            La plateforme <strong>terra-materriaux.com</strong> est éditée par Terra Matériaux
             International (TMI), entreprise commerciale établie au Sénégal, spécialisée dans la vente
             de matériaux de construction, produits agricoles, équipements électriques et textiles.
           </p>

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { formatFCFA } from "@/hooks/useProducts";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
+import { useRealtimeOrders } from "@/hooks/useOrders";
 import { useToast } from "@/hooks/use-toast";
 import { pushNotification } from "@/hooks/useNotifications";
 import { ORDER_STATUS_NOTIFICATIONS } from "@/lib/orderStatus";
@@ -56,6 +57,7 @@ const getPaymentProofExtension = (file: File): string | null => {
 const AdminPayments = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
+  useRealtimeOrders(true, ["admin-payments"]);
   const [comments, setComments] = useState<Record<string, string>>({});
   const [cashProofs, setCashProofs] = useState<Record<string, File | null>>({});
   const [proofPreview, setProofPreview] = useState<{ url: string; name: string } | null>(null);
@@ -276,7 +278,7 @@ const AdminPayments = () => {
                 <Button
                   size="sm"
                   onClick={() => updateStatus.mutate({ id: p.id, status: "verified", order_id: p.order_id, comment: comments[p.id], customer_user_id: p.orders?.user_id ?? null })}
-                  disabled={updateStatus.isPending || !p.proof_url}
+                  disabled={updateStatus.isPending}
                 >
                   <CheckCircle2 className="h-4 w-4 mr-1" /> Valider
                 </Button>

@@ -29,7 +29,7 @@ const AddToCartButton = ({ product, quantity = 1, isGros = false, size = "defaul
   if (!product.in_stock) {
     return (
       <Button size={size} className={className} disabled variant="secondary">
-        Produit indisponible
+        <span className="truncate">Indisponible</span>
       </Button>
     );
   }
@@ -45,7 +45,10 @@ const AddToCartButton = ({ product, quantity = 1, isGros = false, size = "defaul
           navigate("/panier");
         }}
       >
-        <Check className="h-4 w-4 mr-1.5 text-success" /> Déjà dans le panier
+        <Check className="h-4 w-4 mr-1.5 text-success flex-shrink-0" />
+        <span className="truncate">
+          <span className="hidden xs:inline">Déjà dans </span>panier
+        </span>
       </Button>
     );
   }
@@ -63,9 +66,17 @@ const AddToCartButton = ({ product, quantity = 1, isGros = false, size = "defaul
   return (
     <Button size={size} className={className} disabled={adding} onClick={handleAdd}>
       {adding ? (
-        <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Ajout en cours...</>
+        <>
+          <Loader2 className="h-4 w-4 mr-1.5 animate-spin flex-shrink-0" />
+          <span className="truncate">Ajout...</span>
+        </>
       ) : (
-        <><ShoppingCart className="h-4 w-4 mr-1.5" /> Ajouter au panier</>
+        <>
+          <ShoppingCart className="h-4 w-4 mr-1.5 flex-shrink-0" />
+          <span className="truncate">
+            <span className="hidden min-[360px]:inline">Ajouter au </span>Panier
+          </span>
+        </>
       )}
     </Button>
   );

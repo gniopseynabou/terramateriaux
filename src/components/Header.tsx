@@ -1,24 +1,51 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ShoppingCart, Menu, User, Search, ShieldCheck,
-  PackageSearch, Bell, LogIn, LogOut, ChevronRight,
+  PackageSearch, Bell, LogIn, LogOut, ChevronRight, ChevronDown,
   Info, Mail, Home, Package, BadgeCheck
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useCategories } from "@/hooks/useCategories";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible, CollapsibleTrigger, CollapsibleContent
+} from "@/components/ui/collapsible";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ProfileMenu from "@/components/ProfileMenu";
 import logo from "@/assets/logo.jpeg?w=96&format=webp";
 
 const Header = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setDropdownOpen(false);
+    }, 150);
+  };
+  const { data: categories = [] } = useCategories();
   const { totalItems } = useCart();
   const { user, isAdmin, signOut } = useAuth();
   const location = useLocation();
@@ -61,23 +88,79 @@ const Header = () => {
 
         {/* Navigation bureau */}
         <nav className="hidden md:flex items-center gap-6" aria-label="Navigation principale">
-          {mainNavLinks.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${
-                location.pathname === l.to ? "text-primary font-semibold" : "text-foreground/70"
-              }`}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {mainNavLinks.map((l) => {
+            if (l.to === "/catalogue") {
+              return (
+                <div
+                  key={l.to}
+                  className="relative py-2"
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <Link
+                    to="/catalogue"
+                    onClick={() => setDropdownOpen(false)}
+                    className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-1.5 py-0.5 ${location.pathname.startsWith("/catalogue") ? "text-primary font-semibold" : "text-foreground/70"
+                      }`}
+                  >
+                    <span>Catalogue</span>
+                    <ChevronDown className={`h-3.5 w-3.5 opacity-75 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+                  </Link>
+
+                  {dropdownOpen && (
+                    <div
+                      className="absolute left-0 top-full mt-0 w-80 p-2 bg-popover text-popover-foreground border border-border rounded-md shadow-lg z-50 animate-in fade-in-0 zoom-in-95"
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1 mb-1">
+                        Catégories T.M.I
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        {categories.map((cat) => {
+                          const Icon = getCategoryIcon(cat.icon_name);
+                          return (
+                            <Link
+                              key={cat.id}
+                              to={`/catalogue/${cat.slug}`}
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground text-xs font-medium cursor-pointer transition-colors"
+                            >
+                              <Icon className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="truncate">{cat.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                      <div className="my-2 h-[1px] bg-border" />
+                      <Link
+                        to="/catalogue"
+                        onClick={() => setDropdownOpen(false)}
+                        className="w-full text-center text-xs font-semibold text-primary py-1 block hover:underline"
+                      >
+                        Voir tout le catalogue →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={l.to}
+                to={l.to}
+                className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${location.pathname === l.to ? "text-primary font-semibold" : "text-foreground/70"
+                  }`}
+              >
+                {l.label}
+              </Link>
+            );
+          })}
           {isAdmin && (
             <Link
               to="/admin"
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${
-                location.pathname === "/admin" ? "text-primary font-semibold" : "text-foreground/70"
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${location.pathname === "/admin" ? "text-primary font-semibold" : "text-foreground/70"
+                }`}
             >
               <ShieldCheck className="h-4 w-4 text-secondary" aria-hidden />
               <span>Dashboard Admin</span>
@@ -159,9 +242,8 @@ const Header = () => {
                 {user ? (
                   <div className={`p-4 ${isAdmin ? "bg-secondary/10" : "bg-primary/5"} space-y-3`}>
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                        isAdmin ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
-                      }`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${isAdmin ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+                        }`}>
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -210,6 +292,39 @@ const Header = () => {
                     Navigation
                   </p>
                   {mainNavLinks.map((l) => {
+                    if (l.to === "/catalogue") {
+                      return (
+                        <Collapsible key={l.to} open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+                          <div className="flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium text-foreground/80 hover:bg-muted">
+                            <Link to="/catalogue" onClick={() => setSheetOpen(false)} className="flex items-center gap-3 flex-1">
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                              <span>Catalogue</span>
+                            </Link>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${categoriesOpen ? "rotate-180" : ""}`} />
+                              </Button>
+                            </CollapsibleTrigger>
+                          </div>
+                          <CollapsibleContent className="pl-6 space-y-1 py-1">
+                            {categories.map((cat) => {
+                              const Icon = getCategoryIcon(cat.icon_name);
+                              return (
+                                <Link
+                                  key={cat.id}
+                                  to={`/catalogue/${cat.slug}`}
+                                  onClick={() => setSheetOpen(false)}
+                                  className="flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-medium text-foreground/70 hover:bg-muted"
+                                >
+                                  <Icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                  <span>{cat.name}</span>
+                                </Link>
+                              );
+                            })}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    }
                     const Icon = l.icon;
                     const isActive = location.pathname === l.to;
                     return (
@@ -217,9 +332,8 @@ const Header = () => {
                         key={l.to}
                         to={l.to}
                         onClick={() => setSheetOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                          isActive ? "bg-accent text-primary font-semibold" : "text-foreground/80 hover:bg-muted"
-                        }`}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? "bg-accent text-primary font-semibold" : "text-foreground/80 hover:bg-muted"
+                          }`}
                       >
                         <span className="flex items-center gap-3">
                           <Icon className="h-4 w-4 text-muted-foreground" />

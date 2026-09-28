@@ -16,7 +16,7 @@ const PrivacyPolicy = () => (
           <p>
             Terra Matériaux International (TMI), entreprise commerciale établie au Sénégal, est responsable
             du traitement des données personnelles collectées via la plateforme{" "}
-            <strong>www.terra-materriaux.com</strong>.
+            <strong>terra-materriaux.com</strong>.
           </p>
           <p className="mt-2 text-muted-foreground">
             [Contact : à compléter avec l'adresse email officielle et l'adresse postale de l'entreprise]

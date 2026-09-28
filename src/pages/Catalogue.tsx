@@ -33,8 +33,8 @@ const Catalogue = () => {
     : "Parcourez le catalogue TMI : matériaux de construction, matériel agricole, électricité, textile. Prix en gros et détail, livraison partout au Sénégal.";
 
   const canonicalUrl = currentCategory
-    ? `https://www.terra-materriaux.com/catalogue/${currentCategory.slug}`
-    : "https://www.terra-materriaux.com/catalogue";
+    ? `https://terra-materriaux.com/catalogue/${currentCategory.slug}`
+    : "https://terra-materriaux.com/catalogue";
 
   useSeo({ title: pageTitle, description: pageDescription, canonical: canonicalUrl });
 
@@ -69,17 +69,6 @@ const Catalogue = () => {
             : "TMI propose du matériel de construction, agricole, électrique et textile en gros ou au détail, aux meilleurs prix FCFA, livré partout au Sénégal."}
         </p>
 
-        {/* Category chips */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Link to="/catalogue">
-            <Button variant={!categorySlug ? "default" : "outline"} size="sm">Tous</Button>
-          </Link>
-          {categories.map((c) => (
-            <Link key={c.id} to={`/catalogue/${c.slug}`}>
-              <Button variant={categorySlug === c.slug ? "default" : "outline"} size="sm">{c.name}</Button>
-            </Link>
-          ))}
-        </div>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -106,7 +95,7 @@ const Catalogue = () => {
 
         {/* Results */}
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-72 rounded-lg" />
             ))}
@@ -114,7 +103,7 @@ const Catalogue = () => {
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-4">{filtered.length} produit(s)</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filtered.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
