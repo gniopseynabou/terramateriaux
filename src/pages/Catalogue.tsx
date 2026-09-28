@@ -25,16 +25,16 @@ const Catalogue = () => {
 
   // SEO dynamique selon la catégorie affichée
   const pageTitle = currentCategory
-    ? `${currentCategory.name} — Matériaux BTP & Agriculture au Sénégal | TMI`
-    : "Catalogue complet — Matériaux BTP, Agriculture, Électricité | TMI Sénégal";
+    ? `${currentCategory.name} - Matériaux BTP & Agriculture au Sénégal | TMI`
+    : "Catalogue complet - Matériaux BTP, Agriculture, Électricité | TMI Sénégal";
 
   const pageDescription = currentCategory
     ? `Achetez ${currentCategory.name.toLowerCase()} en gros ou au détail au Sénégal, prix FCFA transparents, livraison rapide. Catalogue TMI.`
     : "Parcourez le catalogue TMI : matériaux de construction, matériel agricole, électricité, textile. Prix en gros et détail, livraison partout au Sénégal.";
 
   const canonicalUrl = currentCategory
-    ? `https://terra-materriaux.com/catalogue/${currentCategory.slug}`
-    : "https://terra-materriaux.com/catalogue";
+    ? `https://www.terra-materriaux.com/catalogue/${currentCategory.slug}`
+    : "https://www.terra-materriaux.com/catalogue";
 
   useSeo({ title: pageTitle, description: pageDescription, canonical: canonicalUrl });
 
@@ -114,7 +114,7 @@ const Catalogue = () => {
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-4">{filtered.length} produit(s)</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filtered.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}

@@ -18,12 +18,13 @@ const ProductCard = ({ product, priority = false }: { product: DbProduct; priori
   const finalPrice = promoResult ? promoResult.discountedPrice : product.price_fcfa;
 
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-all duration-300 group relative">
-      <div className="aspect-square bg-muted relative overflow-hidden">
+    <div className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-all duration-300 group relative flex flex-col h-full">
+      {/* Image */}
+      <div className="aspect-square bg-muted relative overflow-hidden flex-shrink-0">
         <SmartImage
           src={src}
           srcSet={srcSet}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
           alt={product.name}
           priority={priority}
           wrapperClassName="w-full h-full"
@@ -33,28 +34,33 @@ const ProductCard = ({ product, priority = false }: { product: DbProduct; priori
         {promoResult && (
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
             <span className="bg-destructive text-destructive-foreground font-bold text-xs px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1">
-              <Tag className="h-3 w-3" /> PROMO {promoResult.badgeLabel}
+              <Tag className="h-3 w-3" aria-hidden="true" /> PROMO {promoResult.badgeLabel}
             </span>
           </div>
         )}
 
         {!product.in_stock && (
           <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
-            <span className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-semibold">
+            <span className="bg-destructive text-destructive-foreground px-3 py-1 rounded text-xs font-semibold">
               Rupture de stock
             </span>
           </div>
         )}
       </div>
-      <div className="p-4 space-y-2">
-        <Link to={`/produit/${product.slug}`}>
-          <h3 className="font-heading font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
+
+      {/* Contenu — flex-col + justify-between pour aligner le bouton en bas */}
+      <div className="p-3 flex flex-col flex-1 gap-2">
+        {/* Titre */}
+        <Link to={`/produit/${product.slug}`} className="flex-1">
+          <h3 className="font-heading font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug">
             {product.name}
           </h3>
         </Link>
-        <div className="space-y-1">
+
+        {/* Prix — zone fixe */}
+        <div className="space-y-0.5">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-heading font-bold text-primary text-base sm:text-lg">
+            <span className="font-heading font-bold text-primary text-base">
               {formatFCFA(finalPrice)}
             </span>
             {promoResult && (
@@ -66,17 +72,19 @@ const ProductCard = ({ product, priority = false }: { product: DbProduct; priori
           <div className="text-xs text-muted-foreground">
             ≈ {fcfaToEuro(finalPrice)} €
           </div>
-          <div className="text-xs text-success font-medium">
+          <div className="text-xs text-secondary font-medium">
             Gros : {formatFCFA(product.price_gros)} (min. {product.min_gros})
           </div>
         </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          {"★".repeat(Math.round(product.rating))} ({product.reviews_count} avis)
+
+        {/* Bouton — toujours en bas grâce au flex-col + mt-auto */}
+        <div className="mt-auto pt-1">
+          <AddToCartButton product={product} size="sm" className="w-full" />
         </div>
-        <AddToCartButton product={product} size="sm" className="w-full mt-2" />
       </div>
     </div>
   );
 };
 
 export default ProductCard;
+

@@ -29,6 +29,9 @@ const Profile = lazy(() => import("./pages/Profile"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -203,6 +206,9 @@ const RouterApp = () => (
       <Route path="/paiement" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/a-propos" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/confidentialite" element={<PrivacyPolicy />} />
+      <Route path="/conditions-utilisation" element={<TermsOfUse />} />
+      <Route path="/politique-cookies" element={<CookiePolicy />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
