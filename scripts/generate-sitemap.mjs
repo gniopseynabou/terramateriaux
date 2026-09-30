@@ -2,12 +2,23 @@
 // Ne fait jamais échouer le build : en cas de problème, le sitemap existant est conservé.
 import { writeFile } from "node:fs/promises";
 
-const SITE_URL = "https://terra-materriaux.com";
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
-const OUTPUT = "public/sitemap.xml";
+// En local, charge le fichier .env (Node 20.12+). Sur Netlify, les variables sont déjà là.
+try {
+  process.loadEnvFile(".env");
+} catch {
+  /* pas de .env : on utilise les variables d'environnement du système */
+}
 
+const SITE_URL = "https://terra-materriaux.com";
+const OUTPUT = "public/sitemap.xml";
 const STATIC_PATHS = ["/", "/catalogue", "/a-propos", "/contact", "/livraison"];
+
+const env = process.env;
+const SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL;
+const SUPABASE_KEY =
+  env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  env.VITE_SUPABASE_ANON_KEY ||
+  env.SUPABASE_ANON_KEY;
 
 const escapeXml = (s) =>
   s
@@ -33,7 +44,7 @@ const entry = (path, lastmod) =>
 
 async function main() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.warn("[sitemap] SUPABASE_URL ou SUPABASE_ANON_KEY absent : sitemap existant conservé.");
+    console.warn("[sitemap] URL ou clé Supabase absente : sitemap existant conservé.");
     return;
   }
 
