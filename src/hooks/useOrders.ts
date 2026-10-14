@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json, Tables } from "@/integrations/supabase/types";
+import type { Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { useEffect } from "react";
 import { ORDER_STATUS_NOTIFICATIONS, canTransition, type OrderStatus } from "@/lib/orderStatus";
 import { pushNotification } from "@/hooks/useNotifications";
@@ -147,14 +147,13 @@ export const useUpdateOrder = () => {
         throw new Error("Transition de statut non autorisée.");
       }
 
-      const patch: Record<string, unknown> = {};
+      const patch: TablesUpdate<"orders"> = {};
       if (input.order_status) patch.order_status = input.order_status;
       if (input.delivery_fee !== undefined) patch.delivery_fee = input.delivery_fee;
       if (input.final_total !== undefined) patch.final_total = input.final_total;
-      if (input.assigned_name !== undefined) patch.assigned_name = input.assigned_name;
       patch.updated_at = new Date().toISOString();
 
-      const { error } = await supabase.from("orders").update(patch as never).eq("id", input.order_id);
+      const { error } = await supabase.from("orders").update(patch).eq("id", input.order_id);
       if (error) throw error;
 
       if (input.order_status || input.comment) {
