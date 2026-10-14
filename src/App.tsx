@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { getPostAuthRedirect } from "@/lib/authRedirect";
 import { Sentry } from "@/lib/sentry";
+import { MaintenanceGuard } from "@/components/MaintenanceGuard";
 import Index from "./pages/Index";
 
 // ── Chargement paresseux ──────────────────────────────────────────────────────
@@ -105,6 +106,34 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!user) {
     const redirectTarget = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`/auth?redirect=${redirectTarget}`} replace />;
+  }
+  return <>{children}</>;
+};
+
+// ── SuperAdminRoute - Accessible uniquement par le Super-Admin technique ──────
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isSuperAdmin, loading } = useAuth();
+  if (loading) return <AuthFallback />;
+  if (!user) return <Navigate to="/auth?redirect=%2Fsuper-admin" replace />;
+  if (!isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="text-center space-y-4 max-w-md bg-card p-6 md:p-8 rounded-lg border border-border shadow-sm">
+          <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+            <span className="text-xl font-bold">!</span>
+          </div>
+          <h1 className="text-2xl font-heading font-bold">Accès Super-Administrateur requis</h1>
+          <p className="text-muted-foreground text-sm">
+            Cette zone est strictement réservée à l'équipe technique et d'exploitation de la plateforme.
+          </p>
+          <div className="flex justify-center pt-2">
+            <a href="/" className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+              Retour au site
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
   return <>{children}</>;
 };
@@ -252,7 +281,9 @@ const App = () => (
 
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AppErrorBoundary>
-              <RouterApp />
+              <MaintenanceGuard>
+                <RouterApp />
+              </MaintenanceGuard>
             </AppErrorBoundary>
           </BrowserRouter>
         </CartProvider>

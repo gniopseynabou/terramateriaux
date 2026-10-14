@@ -146,9 +146,11 @@ function buildEmailHtml(
 }
 
 const ALLOWED_ORIGINS = [
+  "https://terra-materriaux.com",
+  "https://www.terra-materriaux.com",
+  "https://terramateriaux.netlify.app",
   "http://localhost:5173",
   "http://localhost:8080",
-  "https://terramateriaux.netlify.app",
 ];
 
 const getCorsHeaders = (req: Request) => {
