@@ -15,12 +15,13 @@ import {
 } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ProfileMenu from "@/components/ProfileMenu";
+import { MaintenanceControlModal } from "@/components/admin/MaintenanceControlModal";
 import logo from "@/assets/logo.jpeg?w=96&format=webp";
 
 const Header = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const { totalItems } = useCart();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isSuperAdmin, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -97,6 +98,12 @@ const Header = () => {
               <Search className="h-5 w-5" />
             </Button>
           </Link>
+
+          {isSuperAdmin && (
+            <div className="hidden sm:inline-flex">
+              <MaintenanceControlModal />
+            </div>
+          )}
 
           {isAdmin && (
             <Link to="/admin" className="hidden sm:inline-flex">
