@@ -67,28 +67,20 @@ const Auth = () => {
         });
         navigate(isAdminRole ? "/admin" : redirectTarget, { replace: true });
       } else {
-        const { data: emailExists, error: checkError } = await supabase.rpc("check_email_exists", {
-          email_to_check: email.trim(),
-        });
-
-        if (checkError) {
-          console.error("Error checking email:", checkError);
-          throw new Error("Erreur lors de la vérification de l'email.");
-        }
-
-        if (emailExists) {
-          throw new Error("Un compte existe déjà avec cette adresse email.");
-        }
-
-        const { error } = await supabase.auth.signUp({
-          email,
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: fullName.trim() },
             emailRedirectTo: window.location.origin,
           },
         });
-        if (error) throw error;
+        if (signUpError) {
+          if (signUpError.message.includes("already registered") || signUpError.message.includes("already been registered")) {
+            throw new Error("Un compte existe déjà avec cette adresse email.");
+          }
+          throw signUpError;
+        }
         toast({
           title: "Inscription réussie",
           description: "Vérifiez votre email pour confirmer votre compte.",

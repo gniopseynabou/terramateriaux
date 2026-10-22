@@ -19,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -31,27 +32,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchRole(user: User): Promise<string | null> {
   try {
-    // 1. RPC check
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc("has_role", {
-      _user_id: user.id,
-      _role: "admin",
-    });
-    if (!rpcErr && rpcRes) return "admin";
+    // 1. Vérifier si l'utilisateur est super_admin
+    const { data: superAdminRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "super_admin" as never)
+      .maybeSingle();
 
-    // 2. Direct table check on user_roles
-    const { data: roleRow } = await supabase
+    if (superAdminRow) return "super_admin";
+
+    // 2. Vérifier si l'utilisateur est admin métier
+    const { data: adminRow } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "admin")
       .maybeSingle();
 
-    if (roleRow) return "admin";
+    if (adminRow) return "admin";
 
-    // 3. App metadata is server-controlled; user metadata is not authoritative.
-    if (user.app_metadata?.role === "admin") {
-      return "admin";
-    }
+    // 3. App metadata (contrôlé par le serveur)
+    if (user.app_metadata?.role === "super_admin") return "super_admin";
+    if (user.app_metadata?.role === "admin") return "admin";
 
     return "user";
   } catch {
@@ -161,7 +164,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const isAuthenticated = !!user;
-  const isAdmin = role === "admin";
+  const isSuperAdmin = role === "super_admin";
+  const isAdmin = role === "admin" || isSuperAdmin;
 
   return (
     <AuthContext.Provider
@@ -172,6 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         isAuthenticated,
         isAdmin,
+        isSuperAdmin,
         signIn,
         signOut,
       }}
