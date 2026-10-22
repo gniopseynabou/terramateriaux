@@ -19,8 +19,17 @@ export interface CustomerInfo {
   region: string;
   ville: string;
   quartier: string;
+  commune?: string;
   repere: string;
   commentaire: string;
+  deliveryLat?: number | null;
+  deliveryLng?: number | null;
+  instructions?: string;
+  estimatedDistanceKm?: number | null;
+  estimatedDurationMinutes?: number | null;
+  pricingMethod?: string;
+  pricingParams?: Record<string, unknown>;
+  routeGeometry?: string;
 }
 
 interface CartContextType {
@@ -45,8 +54,25 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const STORAGE_KEY = "tmi_cart_v2";
+
 const emptyCustomer: CustomerInfo = {
-  nom: "", tel: "", email: "", adresse: "", region: "", ville: "", quartier: "", repere: "", commentaire: "",
+  nom: "",
+  tel: "",
+  email: "",
+  adresse: "",
+  region: "",
+  ville: "",
+  quartier: "",
+  commune: "",
+  repere: "",
+  commentaire: "",
+  deliveryLat: null,
+  deliveryLng: null,
+  instructions: "",
+  estimatedDistanceKm: null,
+  estimatedDurationMinutes: null,
+  pricingMethod: "DISTANCE_ROAD",
 };
 
 const CART_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours

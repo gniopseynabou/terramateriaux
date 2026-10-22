@@ -40,6 +40,15 @@ export interface CreateOrderInput {
   delivery_region?: string;
   delivery_city?: string;
   delivery_quarter?: string;
+  delivery_commune?: string;
+  delivery_instructions?: string;
+  delivery_lat?: number | null;
+  delivery_lng?: number | null;
+  estimated_distance_km?: number | null;
+  estimated_duration_minutes?: number | null;
+  pricing_method?: string;
+  pricing_params?: Record<string, unknown>;
+  route_geometry?: string;
   delivery_fee: number;
   subtotal: number;
   discount_total?: number;

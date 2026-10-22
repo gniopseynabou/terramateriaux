@@ -57,15 +57,39 @@ export const useDeliverySettings = () => {
         .select("*")
         .maybeSingle();
       if (error) throw error;
-      return (data as DbDeliverySettings) || { free_delivery_min_amount: 50000, free_delivery_enabled: true };
+      return (
+        (data as DbDeliverySettings) || {
+          base_fee: 1500,
+          price_per_km: 200,
+          min_fee: 1000,
+          free_delivery_min_amount: 50000,
+          free_delivery_enabled: true,
+          departure_name: "Siège & Dépôt Central T.M.I.",
+          departure_address: "Quartier Dandé Mayo, Kédougou, Sénégal",
+          departure_lat: 12.5568,
+          departure_lng: -12.1764,
+        }
+      );
     },
   });
 };
 
+export interface UpdateDeliverySettingsPayload {
+  free_delivery_min_amount?: number;
+  free_delivery_enabled?: boolean;
+  base_fee?: number;
+  price_per_km?: number;
+  min_fee?: number;
+  departure_name?: string;
+  departure_address?: string;
+  departure_lat?: number;
+  departure_lng?: number;
+}
+
 export const useUpdateDeliverySettings = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { free_delivery_min_amount: number; free_delivery_enabled: boolean }) => {
+    mutationFn: async (payload: UpdateDeliverySettingsPayload) => {
       const { data: existing } = await supabase.from("delivery_settings").select("id").maybeSingle();
       if (existing) {
         const { data, error } = await supabase
@@ -79,7 +103,7 @@ export const useUpdateDeliverySettings = () => {
       } else {
         const { data, error } = await supabase
           .from("delivery_settings")
-          .insert(payload)
+          .insert(payload as never)
           .select()
           .single();
         if (error) throw error;
@@ -88,6 +112,69 @@ export const useUpdateDeliverySettings = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["delivery_settings"] });
+    },
+  });
+};
+
+export interface AdminUpdateOrderDeliveryPayload {
+  order_id: string;
+  new_lat?: number | null;
+  new_lng?: number | null;
+  new_address?: string;
+  new_commune?: string;
+  new_quarter?: string;
+  new_instructions?: string;
+  new_distance_km?: number;
+  new_delivery_fee?: number;
+  override_reason: string;
+}
+
+export const useAdminUpdateOrderDelivery = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: AdminUpdateOrderDeliveryPayload) => {
+      const { data, error } = await supabase.rpc("admin_update_order_delivery", {
+        _order_id: payload.order_id,
+        _new_lat: payload.new_lat ?? 0,
+        _new_lng: payload.new_lng ?? 0,
+        _new_address: payload.new_address ?? "",
+        _new_commune: payload.new_commune ?? "",
+        _new_quarter: payload.new_quarter ?? "",
+        _new_instructions: payload.new_instructions ?? "",
+        _new_distance_km: payload.new_distance_km ?? 0,
+        _new_delivery_fee: payload.new_delivery_fee ?? 0,
+        _override_reason: payload.override_reason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deliveries"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["delivery_history"] });
+    },
+  });
+};
+
+export const useDriverUpdateLiveLocation = () => {
+  return useMutation({
+    mutationFn: async ({
+      delivery_id,
+      lat,
+      lng,
+    }: {
+      delivery_id: string;
+      lat: number;
+      lng: number;
+    }) => {
+      const { data, error } = await supabase.rpc("driver_update_live_location", {
+        _delivery_id: delivery_id,
+        _lat: lat,
+        _lng: lng,
+      });
+      if (error) throw error;
+      return data;
     },
   });
 };

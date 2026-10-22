@@ -179,6 +179,9 @@ export type Database = {
           completed_at: string | null
           created_at: string
           driver_id: string | null
+          driver_lat: number | null
+          driver_lng: number | null
+          driver_location_updated_at: string | null
           id: string
           issue_reason: string | null
           notes: string | null
@@ -194,6 +197,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           driver_id?: string | null
+          driver_lat?: number | null
+          driver_lng?: number | null
+          driver_location_updated_at?: string | null
           id?: string
           issue_reason?: string | null
           notes?: string | null
@@ -209,6 +215,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           driver_id?: string | null
+          driver_lat?: number | null
+          driver_lng?: number | null
+          driver_location_updated_at?: string | null
           id?: string
           issue_reason?: string | null
           notes?: string | null
@@ -282,21 +291,42 @@ export type Database = {
       }
       delivery_settings: {
         Row: {
+          base_fee: number
+          departure_address: string
+          departure_lat: number
+          departure_lng: number
+          departure_name: string
           free_delivery_enabled: boolean
           free_delivery_min_amount: number
           id: string
+          min_fee: number
+          price_per_km: number
           updated_at: string
         }
         Insert: {
+          base_fee?: number
+          departure_address?: string
+          departure_lat?: number
+          departure_lng?: number
+          departure_name?: string
           free_delivery_enabled?: boolean
           free_delivery_min_amount?: number
           id?: string
+          min_fee?: number
+          price_per_km?: number
           updated_at?: string
         }
         Update: {
+          base_fee?: number
+          departure_address?: string
+          departure_lat?: number
+          departure_lng?: number
+          departure_name?: string
           free_delivery_enabled?: boolean
           free_delivery_min_amount?: number
           id?: string
+          min_fee?: number
+          price_per_km?: number
           updated_at?: string
         }
         Relationships: []
@@ -569,18 +599,32 @@ export type Database = {
           customer_phone: string
           delivery_address: string | null
           delivery_city: string | null
+          delivery_commune: string | null
           delivery_fee: number
+          delivery_instructions: string | null
+          delivery_lat: number | null
+          delivery_lng: number | null
           delivery_method: string
           delivery_quarter: string | null
           delivery_region: string | null
+          estimated_distance_km: number | null
+          estimated_duration_minutes: number | null
           estimated_total: number
           final_total: number | null
           id: string
+          location_created_at: string | null
+          location_updated_at: string | null
+          manual_override_at: string | null
+          manual_override_by: string | null
+          manual_override_reason: string | null
           order_number: string
           order_status: Database["public"]["Enums"]["order_status"]
           payment_id: string | null
           payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          pricing_method: string | null
+          pricing_params: Json | null
+          route_geometry: string | null
           status: string
           subtotal: number
           total: number
@@ -597,18 +641,32 @@ export type Database = {
           customer_phone: string
           delivery_address?: string | null
           delivery_city?: string | null
+          delivery_commune?: string | null
           delivery_fee?: number
+          delivery_instructions?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
           delivery_method?: string
           delivery_quarter?: string | null
           delivery_region?: string | null
+          estimated_distance_km?: number | null
+          estimated_duration_minutes?: number | null
           estimated_total?: number
           final_total?: number | null
           id?: string
+          location_created_at?: string | null
+          location_updated_at?: string | null
+          manual_override_at?: string | null
+          manual_override_by?: string | null
+          manual_override_reason?: string | null
           order_number: string
           order_status?: Database["public"]["Enums"]["order_status"]
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          pricing_method?: string | null
+          pricing_params?: Json | null
+          route_geometry?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -625,18 +683,32 @@ export type Database = {
           customer_phone?: string
           delivery_address?: string | null
           delivery_city?: string | null
+          delivery_commune?: string | null
           delivery_fee?: number
+          delivery_instructions?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
           delivery_method?: string
           delivery_quarter?: string | null
           delivery_region?: string | null
+          estimated_distance_km?: number | null
+          estimated_duration_minutes?: number | null
           estimated_total?: number
           final_total?: number | null
           id?: string
+          location_created_at?: string | null
+          location_updated_at?: string | null
+          manual_override_at?: string | null
+          manual_override_by?: string | null
+          manual_override_reason?: string | null
           order_number?: string
           order_status?: Database["public"]["Enums"]["order_status"]
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          pricing_method?: string | null
+          pricing_params?: Json | null
+          route_geometry?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -957,6 +1029,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_order_delivery: {
+        Args: {
+          _new_address: string
+          _new_commune: string
+          _new_delivery_fee: number
+          _new_distance_km: number
+          _new_instructions: string
+          _new_lat: number
+          _new_lng: number
+          _new_quarter: string
+          _order_id: string
+          _override_reason: string
+        }
+        Returns: Json
+      }
+      driver_update_live_location: {
+        Args: {
+          _delivery_id: string
+          _lat: number
+          _lng: number
+        }
+        Returns: Json
+      }
       check_email_exists: {
         Args: { email_to_check: string }
         Returns: boolean
