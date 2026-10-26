@@ -75,7 +75,6 @@ const emptyCustomer: CustomerInfo = {
   pricingMethod: "DISTANCE_ROAD",
 };
 
-const STORAGE_KEY = "tmi_cart_v1";
 const CART_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 interface PersistedCart {
